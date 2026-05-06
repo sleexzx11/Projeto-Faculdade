@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- ROTAS DE AUTENTICAÇÃO ---
+// --- AUTENTICAÇÃO ---
 
 app.post('/auth/register', async (req, res) => {
     const { tipo, nome, email, senha, ra, turma } = req.body;
@@ -40,15 +40,15 @@ app.post('/auth/register', async (req, res) => {
         const sql = "INSERT INTO usuarios (nome, email, senha, ra, turma, tipo) VALUES (?, ?, ?, ?, ?, ?)";
         db.query(sql, [nome, email, senhaHash, ra || null, turma || null, tipo], (err) => {
             if (err) return res.status(500).send("Erro ao cadastrar.");
-            res.send("<h1>Cadastro realizado!</h1><a href='/login.html'>Login</a>");
+            res.send("<h1>Cadastro ok!</h1><a href='/login.html'>Login</a>");
         });
-    } catch (e) { res.status(500).send("Erro."); }
+    } catch (e) { res.status(500).send("Erro interno."); }
 });
 
 app.post('/auth/login', (req, res) => {
     const { email, senha } = req.body;
     db.query("SELECT * FROM usuarios WHERE email = ?", [email], async (err, results) => {
-        if (err || results.length === 0) return res.send("Usuário não encontrado.");
+        if (err || results.length === 0) return res.send("Utilizador não encontrado.");
         const user = results[0];
         if (await bcrypt.compare(senha, user.senha)) {
             req.session.userId = user.id;
@@ -63,12 +63,12 @@ app.post('/auth/login', (req, res) => {
 // --- ROTAS DO ALUNO ---
 
 app.post('/enviar-atividade', upload.single('arquivo'), (req, res) => {
-    if (!req.file) return res.status(400).send("Arquivo não enviado.");
+    if (!req.file) return res.status(400).send("Nenhum arquivo enviado.");
     const id_aluno = req.session.userId || 1;
     const sql = "INSERT INTO atividades (id_aluno, nome_arquivo, caminho_arquivo) VALUES (?, ?, ?)";
     db.query(sql, [id_aluno, req.file.originalname, req.file.filename], (err) => {
-        if (err) return res.status(500).send("Erro no banco.");
-        res.send("<h1>Enviado!</h1><a href='/dashboard-aluno.html'>Voltar</a>");
+        if (err) return res.status(500).send("Erro ao salvar no banco.");
+        res.send("<h1>Enviado com sucesso!</h1><a href='/dashboard-aluno.html'>Voltar</a>");
     });
 });
 
@@ -83,8 +83,11 @@ app.get('/aluno/minhas-atividades', (req, res) => {
 // --- ROTAS DO PROFESSOR ---
 
 app.get('/atividades/lista', (req, res) => {
-    const sql = `SELECT atividades.*, usuarios.nome AS nome_aluno FROM atividades 
-                 JOIN usuarios ON atividades.id_aluno = usuarios.id ORDER BY data_envio DESC`;
+    const sql = `
+        SELECT atividades.*, usuarios.nome AS nome_aluno, usuarios.ra AS ra_aluno 
+        FROM atividades 
+        JOIN usuarios ON atividades.id_aluno = usuarios.id 
+        ORDER BY atividades.data_envio DESC`;
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json([]);
         res.json(results);
@@ -93,21 +96,11 @@ app.get('/atividades/lista', (req, res) => {
 
 app.post('/atividades/corrigir', (req, res) => {
     const { id, nota, feedback } = req.body;
-    
-    // Esse log vai te mostrar no terminal se os dados chegaram
-    console.log(`>>> Tentando corrigir ID: ${id} | Nota: ${nota} | FB: ${feedback}`);
-
-    // Forçamos o valor de corrigido para 1 (true)
-    const sql = "UPDATE atividades SET nota = ?, feedback = ?, corrigido = 1 WHERE id = ?";
-    
-    db.query(sql, [nota, feedback, id], (err, result) => {
-        if (err) {
-            console.error("ERRO NO BANCO:", err);
-            return res.status(500).json({ sucesso: false, erro: err });
-        }
-        console.log("SUCESSO: Linhas afetadas:", result.affectedRows);
-        res.json({ sucesso: true });
+    const sql = "UPDATE atividades SET nota = ?, feedback = ?, corrigido = TRUE WHERE id = ?";
+    db.query(sql, [nota, feedback, id], (err) => {
+        if (err) return res.status(500).json({sucesso: false});
+        res.json({sucesso: true});
     });
 });
 
-app.listen(3000, () => console.log("Servidor rodando na 3000"));
+app.listen(3000, () => console.log("Servidor rodando em http://localhost:3000"));

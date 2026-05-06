@@ -2,57 +2,191 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Painel do Professor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Professor | Gestão Acadêmica</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f7;
+        }
+        /* Topo Elegante */
+        .prof-hero {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            padding: 50px 0 80px 0;
+            border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px;
+        }
+        .stats-container {
+            margin-top: -50px;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        /* Estética do botão de baixar solicitada */
+        .btn-download {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            border: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-download:hover {
+            background-color: #bae6fd;
+            color: #0369a1;
+            transform: scale(1.02);
+        }
+        .badge-pendente {
+            background-color: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+        .badge-corrigido {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+        .ra-text {
+            font-weight: 700;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="card shadow p-4">
-            <h3>Trabalhos para Corrigir</h3>
-            <table class="table table-hover mt-3">
-                <thead>
-                    <tr>
-                        <th>Aluno</th>
-                        <th>Arquivo</th>
-                        <th>Status</th>
-                        <th>Nota</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="listaAtividades"></tbody>
-            </table>
+<body>
+
+    <!-- CABEÇALHO -->
+    <header class="prof-hero shadow">
+        <div class="container d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="fw-bold m-0">Painel de Avaliação 👨‍🏫</h1>
+                <p class="opacity-75 mb-0">Gerencie as entregas, consulte RAs e lance notas com agilidade.</p>
+            </div>
+            <a href="/login.html" class="btn btn-outline-light btn-sm px-4 rounded-pill">Sair do Sistema</a>
+        </div>
+    </header>
+
+    <div class="container stats-container">
+        <!-- CARDS DE RESUMO -->
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-4">
+                <div class="card p-3 d-flex flex-row align-items-center">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-3 me-3">📂</div>
+                    <div>
+                        <h6 class="text-muted mb-1">Total de Entregas</h6>
+                        <h4 class="fw-bold mb-0" id="countTotal">0</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-4">
+                <div class="card p-3 d-flex flex-row align-items-center border-start border-warning border-4">
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-3 me-3">⏳</div>
+                    <div>
+                        <h6 class="text-muted mb-1">Aguardando Nota</h6>
+                        <h4 class="fw-bold mb-0" id="countPendente">0</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TABELA DE ATIVIDADES -->
+        <div class="card p-4 shadow-sm mb-5 mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold m-0">Lista de Trabalhos</h5>
+                <button onclick="carregarAtividades()" class="btn btn-light btn-sm border">🔄 Atualizar</button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>RA</th>
+                            <th>Aluno</th>
+                            <th>Arquivo Enviado</th>
+                            <th>Data de Entrega</th>
+                            <th>Status</th>
+                            <th>Nota</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaCorpo">
+                        <!-- Conteúdo via JS -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
-        function carregar() {
-            fetch('/atividades/lista').then(r => r.json()).then(dados => {
-                document.getElementById('listaAtividades').innerHTML = dados.map(atv => `
+        async function carregarAtividades() {
+            try {
+                const res = await fetch('/atividades/lista');
+                const dados = await res.json();
+                
+                document.getElementById('countTotal').innerText = dados.length;
+                document.getElementById('countPendente').innerText = dados.filter(a => !a.corrigido).length;
+
+                const tbody = document.getElementById('tabelaCorpo');
+                tbody.innerHTML = dados.map(atv => `
                     <tr>
-                        <td>${atv.nome_aluno}</td>
-                        <td><a href="/uploads/${atv.caminho_arquivo}" target="_blank">📄 ${atv.nome_arquivo}</a></td>
-                        <td>${atv.corrigido ? '<span class="badge bg-success">Corrigido</span>' : '<span class="badge bg-warning text-dark">Pendente</span>'}</td>
-                        <td>${atv.nota !== null ? atv.nota : '-'}</td>
+                        <td><span class="ra-text">${atv.ra_aluno || '---'}</span></td>
                         <td>
-                            <button onclick="corrigir(${atv.id})" class="btn btn-sm btn-primary">Lançar Nota</button>
+                            <div class="fw-semibold">${atv.nome_aluno}</div>
+                        </td>
+                        <td>
+                            <!-- BOTÃO COM A ESTÉTICA QUE VOCÊ PREFERE -->
+                            <a href="/uploads/${atv.caminho_arquivo}" class="btn btn-sm btn-download rounded-pill px-3" download="${atv.nome_arquivo}">
+                                ⬇️ ${atv.nome_arquivo}
+                            </a>
+                        </td>
+                        <td>
+                            <div class="small text-muted">${new Date(atv.data_envio).toLocaleString('pt-BR')}</div>
+                        </td>
+                        <td>
+                            <span class="badge ${atv.corrigido ? 'badge-corrigido' : 'badge-pendente'} rounded-pill">
+                                ${atv.corrigido ? 'Avaliado' : 'Pendente'}
+                            </span>
+                        </td>
+                        <td>
+                            <strong class="text-primary fs-5">${atv.nota !== null ? atv.nota : '--'}</strong>
+                        </td>
+                        <td class="text-end">
+                            <button onclick="lancarNota(${atv.id})" class="btn btn-dark btn-sm rounded-pill px-4">
+                                ${atv.corrigido ? 'Reavaliar' : 'Lançar Nota'}
+                            </button>
                         </td>
                     </tr>
                 `).join('');
-            });
-        }
-
-        function corrigir(id) {
-            const nota = prompt("Nota (0-10):");
-            const feedback = prompt("Feedback:");
-            if (nota !== null) {
-                fetch('/atividades/corrigir', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ id, nota: nota.replace(',','.'), feedback })
-                }).then(() => carregar());
+            } catch (err) {
+                console.error("Erro ao carregar:", err);
             }
         }
-        carregar();
+
+        async function lancarNota(id) {
+            const nota = prompt("Qual a nota do aluno?");
+            if (nota === null) return;
+
+            const feedback = prompt("Feedback:");
+            if (feedback === null) return;
+
+            const response = await fetch('/atividades/corrigir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    id, 
+                    nota: parseFloat(nota.replace(',', '.')), 
+                    feedback 
+                })
+            });
+
+            if (response.ok) carregarAtividades();
+        }
+
+        carregarAtividades();
     </script>
 </body>
 </html>
