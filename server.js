@@ -17,7 +17,8 @@ app.use('/uploads', express.static('uploads'));
 app.use(session({
     secret: 'chave-secreta-faculdade',
     resave: false,
-    saveUninitialized: true
+    saveUninitialized: true,
+    cookie: { maxAge: 1000 * 60 * 60 * 24 } // Sessão dura 24 horas
 }));
 
 if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
@@ -30,6 +31,18 @@ const storage = multer.diskStorage({
     }
 });
 const upload = multer({ storage: storage });
+
+// --- MIDDLEWARES DE SEGURANÇA ---
+
+const verificarLogin = (req, res, next) => {
+    if (!req.session.userId) return res.status(401).json({ erro: "Sessão expirada. Faça login novamente." });
+    next();
+};
+
+const verificarProfessor = (req, res, next) => {
+    if (req.session.tipo !== 'professor') return res.status(403).json({ erro: "Acesso negado." });
+    next();
+};
 
 // --- AUTENTICAÇÃO ---
 
@@ -49,29 +62,42 @@ app.post('/auth/login', (req, res) => {
     const { email, senha } = req.body;
     db.query("SELECT * FROM usuarios WHERE email = ?", [email], async (err, results) => {
         if (err || results.length === 0) return res.send("Utilizador não encontrado.");
+        
         const user = results[0];
         if (await bcrypt.compare(senha, user.senha)) {
             req.session.userId = user.id;
             req.session.tipo = user.tipo;
             req.session.nome = user.nome;
+            req.session.ra = user.ra; 
+            
             return user.tipo === 'aluno' ? res.redirect('/dashboard-aluno.html') : res.redirect('/dashboard-prof.html');
         }
         res.send("Senha incorreta.");
     });
 });
 
-// --- ROTAS DO ALUNO ---
+app.get('/auth/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/login.html');
+});
 
-// NOVA ROTA: ALTERAR SENHA COM BCRYPT
-app.post('/aluno/trocar-senha', async (req, res) => {
+// --- ROTAS DE PERFIL (COMUM A AMBOS) ---
+
+app.get('/api/perfil', verificarLogin, (req, res) => {
+    res.json({
+        nome: req.session.nome,
+        ra: req.session.ra || null,
+        tipo: req.session.tipo
+    });
+});
+
+app.post('/auth/trocar-senha', verificarLogin, async (req, res) => {
     const { novaSenha } = req.body;
     const id_usuario = req.session.userId;
 
-    if (!id_usuario) return res.status(401).json({ erro: "Não autorizado." });
     if (!novaSenha || novaSenha.length < 4) return res.status(400).json({ erro: "Senha muito curta." });
 
     try {
-        // Importante: Gerar hash para a nova senha
         const novaSenhaHash = await bcrypt.hash(novaSenha, 10);
         const sql = "UPDATE usuarios SET senha = ? WHERE id = ?";
         
@@ -84,10 +110,11 @@ app.post('/aluno/trocar-senha', async (req, res) => {
     }
 });
 
-app.post('/enviar-atividade', upload.single('arquivo'), (req, res) => {
+// --- ROTAS DO ALUNO ---
+
+app.post('/enviar-atividade', verificarLogin, upload.single('arquivo'), (req, res) => {
     if (!req.file) return res.status(400).send("Nenhum arquivo enviado.");
     const id_aluno = req.session.userId;
-    if (!id_aluno) return res.status(401).send("Sessão expirada.");
 
     const sql = "INSERT INTO atividades (id_aluno, nome_arquivo, caminho_arquivo) VALUES (?, ?, ?)";
     db.query(sql, [id_aluno, req.file.originalname, req.file.filename], (err) => {
@@ -96,10 +123,8 @@ app.post('/enviar-atividade', upload.single('arquivo'), (req, res) => {
     });
 });
 
-app.get('/aluno/minhas-atividades', (req, res) => {
+app.get('/aluno/minhas-atividades', verificarLogin, (req, res) => {
     const id_aluno = req.session.userId;
-    if (!id_aluno) return res.status(401).json([]);
-
     db.query("SELECT * FROM atividades WHERE id_aluno = ? ORDER BY data_envio DESC", [id_aluno], (err, results) => {
         if (err) return res.status(500).json([]);
         res.json(results);
@@ -108,7 +133,7 @@ app.get('/aluno/minhas-atividades', (req, res) => {
 
 // --- ROTAS DO PROFESSOR ---
 
-app.get('/atividades/lista', (req, res) => {
+app.get('/atividades/lista', verificarLogin, verificarProfessor, (req, res) => {
     const sql = `
         SELECT atividades.*, usuarios.nome AS nome_aluno, usuarios.ra AS ra_aluno 
         FROM atividades 
@@ -120,7 +145,7 @@ app.get('/atividades/lista', (req, res) => {
     });
 });
 
-app.post('/atividades/corrigir', (req, res) => {
+app.post('/atividades/corrigir', verificarLogin, verificarProfessor, (req, res) => {
     const { id, nota, feedback } = req.body;
     const sql = "UPDATE atividades SET nota = ?, feedback = ?, corrigido = TRUE WHERE id = ?";
     db.query(sql, [nota, feedback, id], (err) => {

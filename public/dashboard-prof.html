@@ -9,7 +9,6 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f7; }
 
-        /* Perfil Flutuante do Professor */
         .profile-container { position: absolute; top: 20px; right: 20px; z-index: 1000; }
         .profile-img { 
             width: 50px; height: 50px; border-radius: 50%; object-fit: cover; 
@@ -17,12 +16,20 @@
         }
         .profile-img:hover { transform: scale(1.1); border-color: #fff; }
 
-        /* Topo Elegante */
         .prof-hero {
             background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
             color: white; padding: 50px 0 80px 0; border-bottom-left-radius: 40px;
             border-bottom-right-radius: 40px; position: relative;
         }
+        
+        .user-info-header {
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            border-radius: 8px 8px 0 0;
+            font-size: 0.9rem;
+        }
+
         .stats-container { margin-top: -50px; }
         .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         
@@ -39,34 +46,33 @@
 </head>
 <body>
 
-    <!-- CABEÇALHO -->
     <header class="prof-hero shadow">
-        <!-- MENU DE PERFIL IGUAL AO DO ALUNO -->
         <div class="profile-container">
             <div class="dropdown">
                 <img src="https://ui-avatars.com/api/?name=Professor&background=0D6EFD&color=fff" 
                      alt="Perfil" class="profile-img dropdown-toggle" 
                      data-bs-toggle="dropdown" id="profPhoto">
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                    <li class="dropdown-header fw-bold text-dark">Painel do Docente</li>
-                    <li><label class="dropdown-item" style="cursor:pointer">📸 Mudar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="min-width: 200px;">
+                    <div class="user-info-header">
+                        <div class="fw-bold text-dark text-truncate" id="menuNomeProf">Carregando...</div>
+                        <div class="text-muted small">Professor(a)</div>
+                    </div>
+                    <li><label class="dropdown-item mt-2" style="cursor:pointer">📸 Mudar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
                     <li><a class="dropdown-item" href="#" onclick="abrirModalSenha()">🔑 Trocar Senha</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger fw-bold" href="/login.html">Sair do Sistema</a></li>
+                    <!-- ROTA DE LOGOUT ATUALIZADA -->
+                    <li><a class="dropdown-item text-danger fw-bold" href="/auth/logout">Sair do Sistema</a></li>
                 </ul>
             </div>
         </div>
 
-        <div class="container d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="fw-bold m-0">Painel de Avaliação 👨‍🏫</h1>
-                <p class="opacity-75 mb-0">Gerencie as entregas, consulte RAs e lance notas com agilidade.</p>
-            </div>
+        <div class="container">
+            <h1 class="fw-bold m-0">Painel de Avaliação 👨‍🏫</h1>
+            <p class="opacity-75 mb-0">Bem-vindo, <span id="welcomeProf">Professor</span>. Gerencie as entregas abaixo.</p>
         </div>
     </header>
 
     <div class="container stats-container">
-        <!-- CARDS DE RESUMO -->
         <div class="row g-3">
             <div class="col-md-6 col-lg-4">
                 <div class="card p-3 d-flex flex-row align-items-center">
@@ -88,7 +94,6 @@
             </div>
         </div>
 
-        <!-- TABELA DE ATIVIDADES -->
         <div class="card p-4 shadow-sm mb-5 mt-4">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h5 class="fw-bold m-0">Lista de Trabalhos</h5>
@@ -114,7 +119,7 @@
         </div>
     </div>
 
-    <!-- MODAL ALTERAR SENHA (FUNCIONALIDADE NOVA) -->
+    <!-- MODAL ALTERAR SENHA -->
     <div class="modal fade" id="modalSenha" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -140,6 +145,30 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Carregar dados do perfil (Unificado)
+        async function carregarPerfilProfessor() {
+            try {
+                const response = await fetch('/api/perfil');
+                if (response.ok) {
+                    const dados = await response.json();
+                    
+                    // Verifica se o usuário é realmente um professor
+                    if(dados.tipo !== 'professor') {
+                        window.location.href = '/dashboard-aluno.html';
+                        return;
+                    }
+
+                    document.getElementById('menuNomeProf').innerText = dados.nome;
+                    document.getElementById('welcomeProf').innerText = dados.nome;
+                    document.getElementById('profPhoto').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=0D6EFD&color=fff`;
+                } else {
+                    window.location.href = '/login.html';
+                }
+            } catch (error) {
+                console.error("Erro ao carregar dados do professor");
+            }
+        }
+
         // --- FUNÇÕES DE PERFIL ---
         function changePhoto(input) {
             if (input.files && input.files[0]) {
@@ -150,13 +179,7 @@
         }
 
         function abrirModalSenha() {
-            const modalElement = document.getElementById('modalSenha');
-            const modal = new bootstrap.Modal(modalElement);
-            document.getElementById('novaSenha').value = "";
-            document.getElementById('confirmarSenha').value = "";
-            document.getElementById('feedbackSenha').classList.add('d-none');
-            document.getElementById('btnSalvarSenha').disabled = true;
-            modal.show();
+            new bootstrap.Modal(document.getElementById('modalSenha')).show();
         }
 
         function validarSenhas() {
@@ -184,20 +207,20 @@
         async function salvarNovaSenha() {
             const novaSenha = document.getElementById('novaSenha').value;
             try {
-                const response = await fetch('/aluno/trocar-senha', { // Usamos a mesma rota de trocar senha
+                const response = await fetch('/auth/trocar-senha', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ novaSenha: novaSenha })
+                    body: JSON.stringify({ novaSenha })
                 });
 
                 if (response.ok) {
-                    alert("✅ Senha do professor atualizada!");
+                    alert("✅ Senha atualizada!");
                     bootstrap.Modal.getInstance(document.getElementById('modalSenha')).hide();
                 } else {
-                    alert("❌ Erro ao atualizar senha.");
+                    alert("Erro ao atualizar senha.");
                 }
-            } catch (error) {
-                alert("❌ Erro de conexão.");
+            } catch (err) {
+                alert("Erro de conexão.");
             }
         }
 
@@ -205,6 +228,7 @@
         async function carregarAtividades() {
             try {
                 const res = await fetch('/atividades/lista');
+                if (!res.ok) throw new Error();
                 const dados = await res.json();
                 
                 document.getElementById('countTotal').innerText = dados.length;
@@ -235,29 +259,37 @@
                     </tr>
                 `).join('');
             } catch (err) {
-                console.error("Erro ao carregar:", err);
+                console.error("Erro ao carregar atividades ou acesso não autorizado.");
             }
         }
 
         async function lancarNota(id) {
-            const nota = prompt("Qual a nota do aluno?");
-            if (nota === null) return;
-            const feedback = prompt("Feedback:");
+            const nota = prompt("Qual a nota do aluno? (0-10)");
+            if (nota === null || nota === "") return;
+            
+            const feedback = prompt("Feedback para o aluno:");
             if (feedback === null) return;
 
-            const response = await fetch('/atividades/corrigir', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    id, 
-                    nota: parseFloat(nota.replace(',', '.')), 
-                    feedback 
-                })
-            });
+            try {
+                const res = await fetch('/atividades/corrigir', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        id, 
+                        nota: parseFloat(nota.replace(',', '.')), 
+                        feedback 
+                    })
+                });
 
-            if (response.ok) carregarAtividades();
+                if(res.ok) carregarAtividades();
+                else alert("Erro ao salvar nota.");
+            } catch (err) {
+                alert("Erro de conexão.");
+            }
         }
 
+        // Iniciar
+        carregarPerfilProfessor();
         carregarAtividades();
     </script>
 </body>

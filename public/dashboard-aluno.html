@@ -9,7 +9,6 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
         
-        /* Perfil Flutuante */
         .profile-container { position: absolute; top: 20px; right: 20px; z-index: 1000; }
         .profile-img { 
             width: 50px; height: 50px; border-radius: 50%; object-fit: cover; 
@@ -17,15 +16,38 @@
         }
         .profile-img:hover { transform: scale(1.1); border-color: #fff; }
 
+        .user-info-header {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            border-radius: 8px 8px 0 0;
+        }
+
         .hero-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white; padding: 60px 0 90px 0; border-bottom-left-radius: 50px;
             border-bottom-right-radius: 50px; margin-bottom: -50px; position: relative;
         }
-        .card { border: none; border-radius: 15px; transition: transform 0.2s; }
+
+        .card { border: none; border-radius: 15px; }
         .status-badge { border-radius: 20px; padding: 5px 12px; font-size: 0.8rem; }
         .bg-success-soft { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .bg-warning-soft { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+
+        .btn-download-aluno {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: none;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 8px;
+            transition: 0.2s;
+        }
+        .btn-download-aluno:hover { background-color: #e2e8f0; color: #1e293b; }
     </style>
 </head>
 <body>
@@ -36,31 +58,34 @@
                 <img src="https://ui-avatars.com/api/?name=Aluno&background=random" 
                      alt="Perfil" class="profile-img dropdown-toggle" 
                      data-bs-toggle="dropdown" id="userPhoto">
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
-                    <li class="dropdown-header fw-bold text-dark">Configurações</li>
-                    <li><label class="dropdown-item" style="cursor:pointer">📸 Alterar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="min-width: 220px;">
+                    <div class="user-info-header">
+                        <div class="fw-bold text-dark text-truncate" id="menuNome">Carregando...</div>
+                        <div class="text-muted small" id="menuRA">RA: --</div>
+                    </div>
+                    <li><label class="dropdown-item mt-2" style="cursor:pointer">📸 Alterar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
                     <li><a class="dropdown-item" href="#" onclick="abrirModalSenha()">🔑 Alterar Senha</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger fw-bold" href="/login.html">Deslogar</a></li>
+                    <!-- ROTA DE LOGOUT ATUALIZADA -->
+                    <li><a class="dropdown-item text-danger fw-bold" href="/auth/logout">Deslogar</a></li>
                 </ul>
             </div>
         </div>
 
         <div class="container text-center">
             <h1 class="fw-bold">Central de Atividades 📚</h1>
-            <p class="lead opacity-75">Envie seus arquivos e acompanhe suas notas.</p>
+            <p class="lead opacity-75">Olá, <span id="welcomeNome">Aluno</span>! Acompanhe suas entregas.</p>
         </div>
     </header>
 
     <div class="container py-5">
         <div class="row g-4">
-            <!-- ENVIO -->
             <div class="col-lg-4">
                 <div class="card shadow p-4 mt-5 border-top border-primary border-4">
                     <h5 class="fw-bold mb-3">🚀 Novo Envio</h5>
                     <form action="/enviar-atividade" method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label class="form-label text-muted small">Selecione o arquivo</label>
+                            <label class="form-label text-muted small">Selecione o arquivo (PDF, DOCX, etc)</label>
                             <input type="file" name="arquivo" class="form-control" required>
                         </div>
                         <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">Entregar Atividade</button>
@@ -68,7 +93,6 @@
                 </div>
             </div>
 
-            <!-- TABELA -->
             <div class="col-lg-8">
                 <div class="card shadow p-4 mt-5">
                     <h5 class="fw-bold mb-4">📊 Meu Desempenho</h5>
@@ -90,7 +114,7 @@
         </div>
     </div>
 
-    <!-- MODAL ALTERAR SENHA -->
+    <!-- MODAL SENHA -->
     <div class="modal fade" id="modalSenha" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -100,15 +124,15 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Nova Senha</label>
+                        <label class="form-label small">Nova Senha</label>
                         <input type="password" id="novaSenha" class="form-control" oninput="validarSenhas()">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Confirmar Senha</label>
+                        <label class="form-label small">Confirmar Senha</label>
                         <input type="password" id="confirmarSenha" class="form-control" oninput="validarSenhas()">
                         <div id="feedbackSenha" class="small mt-1 d-none"></div>
                     </div>
-                    <button id="btnSalvarSenha" class="btn btn-primary w-100 fw-bold py-2" onclick="salvarNovaSenha()" disabled>Atualizar</button>
+                    <button id="btnSalvarSenha" class="btn btn-primary w-100 fw-bold" onclick="salvarNovaSenha()" disabled>Atualizar</button>
                 </div>
             </div>
         </div>
@@ -116,6 +140,55 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Carrega dados do Perfil (Rota unificada no backend)
+        async function carregarDadosPerfil() {
+            try {
+                const response = await fetch('/api/perfil');
+                if (response.ok) {
+                    const dados = await response.json();
+                    document.getElementById('menuNome').innerText = dados.nome;
+                    document.getElementById('welcomeNome').innerText = dados.nome;
+                    document.getElementById('menuRA').innerText = "RA: " + (dados.ra || "N/A");
+                    document.getElementById('userPhoto').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=random`;
+                } else {
+                    window.location.href = '/login.html'; // Redireciona se não estiver logado
+                }
+            } catch (error) {
+                console.error("Erro ao carregar perfil:", error);
+            }
+        }
+
+        function carregarMinhasAtividades() {
+            fetch('/aluno/minhas-atividades')
+                .then(r => r.json())
+                .then(dados => {
+                    const tbody = document.getElementById('minhasAtividades');
+                    if(!dados || dados.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhuma atividade enviada.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = dados.map(atv => `
+                        <tr>
+                            <td>
+                                <div class="fw-bold">${atv.nome_arquivo}</div>
+                                <div class="text-muted small">Enviado em: ${new Date(atv.data_envio).toLocaleDateString()}</div>
+                                <a href="/uploads/${atv.caminho_arquivo}" download="${atv.nome_arquivo}" class="btn-download-aluno">
+                                    📥 Baixar meu arquivo
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge ${atv.corrigido ? 'bg-success-soft' : 'bg-warning-soft'} status-badge">
+                                    ${atv.corrigido ? '✅ Corrigido' : '⏳ Em Análise'}
+                                </span>
+                            </td>
+                            <td><span class="fs-5 fw-bold ${atv.nota >= 6 ? 'text-success' : 'text-danger'}">${atv.nota !== null ? atv.nota : '--'}</span></td>
+                            <td><p class="mb-0 small text-secondary">${atv.feedback || 'Sem feedback'}</p></td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(err => console.error("Erro ao carregar atividades"));
+        }
+
         function changePhoto(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -125,14 +198,8 @@
         }
 
         function abrirModalSenha() {
-            const modalElement = document.getElementById('modalSenha');
-            const modal = new bootstrap.Modal(modalElement);
-            // Limpa os campos ao abrir
-            document.getElementById('novaSenha').value = "";
-            document.getElementById('confirmarSenha').value = "";
-            document.getElementById('feedbackSenha').classList.add('d-none');
-            document.getElementById('btnSalvarSenha').disabled = true;
-            modal.show();
+            const myModal = new bootstrap.Modal(document.getElementById('modalSenha'));
+            myModal.show();
         }
 
         function validarSenhas() {
@@ -140,7 +207,6 @@
             const s2 = document.getElementById('confirmarSenha').value;
             const f = document.getElementById('feedbackSenha');
             const b = document.getElementById('btnSalvarSenha');
-            
             f.classList.remove('d-none');
             
             if (s1.length < 4) {
@@ -160,59 +226,27 @@
 
         async function salvarNovaSenha() {
             const novaSenha = document.getElementById('novaSenha').value;
-            const b = document.getElementById('btnSalvarSenha');
-
-            // Desativa o botão para evitar cliques duplos
-            b.disabled = true;
-            b.innerText = "Salvando...";
-
             try {
-                const response = await fetch('/aluno/trocar-senha', {
+                const response = await fetch('/auth/trocar-senha', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ novaSenha: novaSenha })
+                    body: JSON.stringify({ novaSenha })
                 });
-
-                const resultado = await response.json();
-
+                
+                const result = await response.json();
                 if (response.ok) {
-                    alert("✅ Senha atualizada com sucesso!");
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalSenha'));
-                    modal.hide();
+                    alert("Senha alterada com sucesso!");
+                    bootstrap.Modal.getInstance(document.getElementById('modalSenha')).hide();
                 } else {
-                    alert("❌ Erro: " + (resultado.erro || "Falha ao atualizar"));
+                    alert("Erro: " + result.erro);
                 }
-            } catch (error) {
-                console.error("Erro na requisição:", error);
-                alert("❌ Erro de conexão com o servidor.");
-            } finally {
-                b.disabled = false;
-                b.innerText = "Atualizar";
+            } catch (err) {
+                alert("Erro ao conectar com o servidor.");
             }
         }
 
-        function carregarMinhasAtividades() {
-            fetch('/aluno/minhas-atividades')
-                .then(r => r.json())
-                .then(dados => {
-                    const tbody = document.getElementById('minhasAtividades');
-                    tbody.innerHTML = dados.map(atv => `
-                        <tr>
-                            <td>
-                                <div class="fw-bold">${atv.nome_arquivo}</div>
-                                <div class="text-muted small">Em: ${new Date(atv.data_envio).toLocaleDateString()}</div>
-                            </td>
-                            <td>
-                                <span class="badge ${atv.corrigido ? 'bg-success-soft' : 'bg-warning-soft'} status-badge">
-                                    ${atv.corrigido ? '✅ Corrigido' : '⏳ Em Análise'}
-                                </span>
-                            </td>
-                            <td><span class="fs-5 fw-bold ${atv.nota >= 6 ? 'text-success' : 'text-danger'}">${atv.nota !== null ? atv.nota : '--'}</span></td>
-                            <td><p class="mb-0 small text-secondary">${atv.feedback || '---'}</p></td>
-                        </tr>
-                    `).join('');
-                });
-        }
+        // Iniciar
+        carregarDadosPerfil();
         carregarMinhasAtividades();
     </script>
 </body>
