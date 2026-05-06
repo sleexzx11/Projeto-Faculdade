@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Sistema Acadêmico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .register-container { max-width: 500px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="register-container">
+        <h2 class="text-center mb-4">Criar Conta</h2>
+        <form action="/auth/register" method="POST">
+            <div class="mb-3">
+                <label class="form-label">Tipo de Usuário</label>
+                <select class="form-select" name="tipo" id="tipoUsuario" onchange="toggleCampos()" required>
+                    <option value="aluno">Aluno</option>
+                    <option value="professor">Professor</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nome Completo</label>
+                <input type="text" class="form-control" name="nome" required>
+            </div>
+
+            <div id="camposAluno">
+                <div class="mb-3">
+                    <label class="form-label">RA</label>
+                    <input type="text" class="form-control" name="ra">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Turma</label>
+                    <input type="text" class="form-control" name="turma">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">E-mail</label>
+                <input type="email" class="form-control" name="email" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Senha</label>
+                <input type="password" class="form-control" name="senha" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Registrar</button>
+            <p class="text-center mt-3">Já tem conta? <a href="login.html">Faça login</a></p>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleCampos() {
+        const tipo = document.getElementById('tipoUsuario').value;
+        const camposAluno = document.getElementById('camposAluno');
+        // Se for professor, esconde RA e Turma
+        camposAluno.style.display = tipo === 'professor' ? 'none' : 'block';
+    }
+</script>
+
+</body>
+</html>

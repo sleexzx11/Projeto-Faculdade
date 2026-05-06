@@ -1,0 +1,113 @@
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const session = require('express-session');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const db = require('./db');
+
+const app = express();
+
+// --- CONFIGURAÇÕES ---
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static('public'));
+app.use('/uploads', express.static('uploads'));
+
+app.use(session({
+    secret: 'chave-secreta-faculdade',
+    resave: false,
+    saveUninitialized: true
+}));
+
+if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => { cb(null, 'uploads/'); },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + ext);
+    }
+});
+const upload = multer({ storage: storage });
+
+// --- ROTAS DE AUTENTICAÇÃO ---
+
+app.post('/auth/register', async (req, res) => {
+    const { tipo, nome, email, senha, ra, turma } = req.body;
+    try {
+        const senhaHash = await bcrypt.hash(senha, 10);
+        const sql = "INSERT INTO usuarios (nome, email, senha, ra, turma, tipo) VALUES (?, ?, ?, ?, ?, ?)";
+        db.query(sql, [nome, email, senhaHash, ra || null, turma || null, tipo], (err) => {
+            if (err) return res.status(500).send("Erro ao cadastrar.");
+            res.send("<h1>Cadastro realizado!</h1><a href='/login.html'>Login</a>");
+        });
+    } catch (e) { res.status(500).send("Erro."); }
+});
+
+app.post('/auth/login', (req, res) => {
+    const { email, senha } = req.body;
+    db.query("SELECT * FROM usuarios WHERE email = ?", [email], async (err, results) => {
+        if (err || results.length === 0) return res.send("Usuário não encontrado.");
+        const user = results[0];
+        if (await bcrypt.compare(senha, user.senha)) {
+            req.session.userId = user.id;
+            req.session.tipo = user.tipo;
+            req.session.nome = user.nome;
+            return user.tipo === 'aluno' ? res.redirect('/dashboard-aluno.html') : res.redirect('/dashboard-prof.html');
+        }
+        res.send("Senha incorreta.");
+    });
+});
+
+// --- ROTAS DO ALUNO ---
+
+app.post('/enviar-atividade', upload.single('arquivo'), (req, res) => {
+    if (!req.file) return res.status(400).send("Arquivo não enviado.");
+    const id_aluno = req.session.userId || 1;
+    const sql = "INSERT INTO atividades (id_aluno, nome_arquivo, caminho_arquivo) VALUES (?, ?, ?)";
+    db.query(sql, [id_aluno, req.file.originalname, req.file.filename], (err) => {
+        if (err) return res.status(500).send("Erro no banco.");
+        res.send("<h1>Enviado!</h1><a href='/dashboard-aluno.html'>Voltar</a>");
+    });
+});
+
+app.get('/aluno/minhas-atividades', (req, res) => {
+    const id_aluno = req.session.userId || 1;
+    db.query("SELECT * FROM atividades WHERE id_aluno = ? ORDER BY data_envio DESC", [id_aluno], (err, results) => {
+        if (err) return res.status(500).json([]);
+        res.json(results);
+    });
+});
+
+// --- ROTAS DO PROFESSOR ---
+
+app.get('/atividades/lista', (req, res) => {
+    const sql = `SELECT atividades.*, usuarios.nome AS nome_aluno FROM atividades 
+                 JOIN usuarios ON atividades.id_aluno = usuarios.id ORDER BY data_envio DESC`;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json([]);
+        res.json(results);
+    });
+});
+
+app.post('/atividades/corrigir', (req, res) => {
+    const { id, nota, feedback } = req.body;
+    
+    // Esse log vai te mostrar no terminal se os dados chegaram
+    console.log(`>>> Tentando corrigir ID: ${id} | Nota: ${nota} | FB: ${feedback}`);
+
+    // Forçamos o valor de corrigido para 1 (true)
+    const sql = "UPDATE atividades SET nota = ?, feedback = ?, corrigido = 1 WHERE id = ?";
+    
+    db.query(sql, [nota, feedback, id], (err, result) => {
+        if (err) {
+            console.error("ERRO NO BANCO:", err);
+            return res.status(500).json({ sucesso: false, erro: err });
+        }
+        console.log("SUCESSO: Linhas afetadas:", result.affectedRows);
+        res.json({ sucesso: true });
+    });
+});
+
+app.listen(3000, () => console.log("Servidor rodando na 3000"));
