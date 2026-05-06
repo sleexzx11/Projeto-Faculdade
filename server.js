@@ -62,9 +62,33 @@ app.post('/auth/login', (req, res) => {
 
 // --- ROTAS DO ALUNO ---
 
+// NOVA ROTA: ALTERAR SENHA COM BCRYPT
+app.post('/aluno/trocar-senha', async (req, res) => {
+    const { novaSenha } = req.body;
+    const id_usuario = req.session.userId;
+
+    if (!id_usuario) return res.status(401).json({ erro: "Não autorizado." });
+    if (!novaSenha || novaSenha.length < 4) return res.status(400).json({ erro: "Senha muito curta." });
+
+    try {
+        // Importante: Gerar hash para a nova senha
+        const novaSenhaHash = await bcrypt.hash(novaSenha, 10);
+        const sql = "UPDATE usuarios SET senha = ? WHERE id = ?";
+        
+        db.query(sql, [novaSenhaHash, id_usuario], (err) => {
+            if (err) return res.status(500).json({ erro: "Erro no banco de dados." });
+            res.json({ sucesso: true, mensagem: "Senha alterada com sucesso!" });
+        });
+    } catch (e) {
+        res.status(500).json({ erro: "Erro ao processar senha." });
+    }
+});
+
 app.post('/enviar-atividade', upload.single('arquivo'), (req, res) => {
     if (!req.file) return res.status(400).send("Nenhum arquivo enviado.");
-    const id_aluno = req.session.userId || 1;
+    const id_aluno = req.session.userId;
+    if (!id_aluno) return res.status(401).send("Sessão expirada.");
+
     const sql = "INSERT INTO atividades (id_aluno, nome_arquivo, caminho_arquivo) VALUES (?, ?, ?)";
     db.query(sql, [id_aluno, req.file.originalname, req.file.filename], (err) => {
         if (err) return res.status(500).send("Erro ao salvar no banco.");
@@ -73,7 +97,9 @@ app.post('/enviar-atividade', upload.single('arquivo'), (req, res) => {
 });
 
 app.get('/aluno/minhas-atividades', (req, res) => {
-    const id_aluno = req.session.userId || 1;
+    const id_aluno = req.session.userId;
+    if (!id_aluno) return res.status(401).json([]);
+
     db.query("SELECT * FROM atividades WHERE id_aluno = ? ORDER BY data_envio DESC", [id_aluno], (err, results) => {
         if (err) return res.status(500).json([]);
         res.json(results);

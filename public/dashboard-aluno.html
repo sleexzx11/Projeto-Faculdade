@@ -125,7 +125,13 @@
         }
 
         function abrirModalSenha() {
-            const modal = new bootstrap.Modal(document.getElementById('modalSenha'));
+            const modalElement = document.getElementById('modalSenha');
+            const modal = new bootstrap.Modal(modalElement);
+            // Limpa os campos ao abrir
+            document.getElementById('novaSenha').value = "";
+            document.getElementById('confirmarSenha').value = "";
+            document.getElementById('feedbackSenha').classList.add('d-none');
+            document.getElementById('btnSalvarSenha').disabled = true;
             modal.show();
         }
 
@@ -134,17 +140,55 @@
             const s2 = document.getElementById('confirmarSenha').value;
             const f = document.getElementById('feedbackSenha');
             const b = document.getElementById('btnSalvarSenha');
+            
             f.classList.remove('d-none');
-            if(s1 === s2 && s1.length >= 4) {
-                f.innerHTML = "✅ Senhas iguais"; f.className = "small mt-1 text-success"; b.disabled = false;
+            
+            if (s1.length < 4) {
+                f.innerHTML = "⚠️ Mínimo 4 caracteres";
+                f.className = "small mt-1 text-warning";
+                b.disabled = true;
+            } else if(s1 === s2) {
+                f.innerHTML = "✅ Senhas coincidem";
+                f.className = "small mt-1 text-success";
+                b.disabled = false;
             } else {
-                f.innerHTML = "❌ Senhas não batem"; f.className = "small mt-1 text-danger"; b.disabled = true;
+                f.innerHTML = "❌ Senhas não batem";
+                f.className = "small mt-1 text-danger";
+                b.disabled = true;
             }
         }
 
-        function salvarNovaSenha() {
-            alert("Senha alterada!");
-            bootstrap.Modal.getInstance(document.getElementById('modalSenha')).hide();
+        async function salvarNovaSenha() {
+            const novaSenha = document.getElementById('novaSenha').value;
+            const b = document.getElementById('btnSalvarSenha');
+
+            // Desativa o botão para evitar cliques duplos
+            b.disabled = true;
+            b.innerText = "Salvando...";
+
+            try {
+                const response = await fetch('/aluno/trocar-senha', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ novaSenha: novaSenha })
+                });
+
+                const resultado = await response.json();
+
+                if (response.ok) {
+                    alert("✅ Senha atualizada com sucesso!");
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalSenha'));
+                    modal.hide();
+                } else {
+                    alert("❌ Erro: " + (resultado.erro || "Falha ao atualizar"));
+                }
+            } catch (error) {
+                console.error("Erro na requisição:", error);
+                alert("❌ Erro de conexão com o servidor.");
+            } finally {
+                b.disabled = false;
+                b.innerText = "Atualizar";
+            }
         }
 
         function carregarMinhasAtividades() {

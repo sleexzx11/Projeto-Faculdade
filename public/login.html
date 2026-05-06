@@ -3,32 +3,195 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Sistema Acadêmico</title>
+    <title>Acesso ao Sistema | Portal Acadêmico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; height: 100vh; display: flex; align-items: center; }
-        .login-container { max-width: 400px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        :root {
+            --primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            --accent-color: #3b82f6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f3f4f7;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .bg-decoration {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--primary-gradient);
+            clip-path: circle(30% at 100% 0%);
+            z-index: -1;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 450px;
+            padding: 40px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .brand-logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #1e3a8a;
+            margin-bottom: 5px;
+        }
+
+        .form-label { font-weight: 600; font-size: 0.85rem; color: #4b5563; }
+
+        .form-control, .form-select {
+            border-radius: 12px;
+            padding: 12px 15px;
+            border: 2px solid #f3f4f7;
+            background-color: #f9fafb;
+        }
+
+        .form-control:focus { border-color: var(--accent-color); box-shadow: none; background: white; }
+
+        .btn-auth {
+            background: var(--primary-gradient);
+            border: none; border-radius: 12px;
+            padding: 12px; font-weight: 700; color: white;
+            transition: all 0.3s;
+        }
+
+        .btn-auth:hover { transform: translateY(-2px); box-shadow: 0 8px 15px rgba(30, 58, 138, 0.2); color: white; }
+
+        .switch-link { color: var(--accent-color); text-decoration: none; font-weight: 600; cursor: pointer; }
+
+        .role-selector {
+            display: flex; gap: 10px; margin-bottom: 20px;
+        }
+        .role-option {
+            flex: 1; text-align: center; padding: 10px;
+            border: 2px solid #f3f4f7; border-radius: 10px;
+            cursor: pointer; transition: all 0.2s; font-weight: 600;
+        }
+        input[type="radio"]:checked + .role-option {
+            border-color: var(--accent-color);
+            background: #eff6ff; color: var(--accent-color);
+        }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="login-container">
-        <h2 class="text-center mb-4">Entrar</h2>
+    <div class="bg-decoration"></div>
+
+    <!-- SEÇÃO DE LOGIN -->
+    <div class="auth-card" id="loginCard">
+        <div class="text-center mb-4">
+            <div class="brand-logo">Portal Acadêmico</div>
+            <p class="text-muted small">Entre com suas credenciais</p>
+        </div>
+
         <form action="/auth/login" method="POST">
             <div class="mb-3">
                 <label class="form-label">E-mail</label>
-                <input type="email" class="form-control" name="email" required>
+                <input type="email" name="email" class="form-control" placeholder="seu@email.com" required>
             </div>
-            <div class="mb-3">
+            <div class="mb-4">
                 <label class="form-label">Senha</label>
-                <input type="password" class="form-control" name="senha" required>
+                <input type="password" name="senha" class="form-control" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn btn-success w-100">Acessar Sistema</button>
-            <p class="text-center mt-3">Não tem conta? <a href="registro.html">Cadastre-se</a></p>
+            <button type="submit" class="btn btn-auth w-100">Acessar Sistema</button>
         </form>
-    </div>
-</div>
 
+        <div class="text-center mt-4">
+            <span class="text-muted small">Ainda não tem acesso?</span>
+            <a class="switch-link small" onclick="toggleAuth()">Criar Conta</a>
+        </div>
+    </div>
+
+    <!-- SEÇÃO DE REGISTRO -->
+    <div class="auth-card hidden" id="registerCard">
+        <div class="text-center mb-4">
+            <div class="brand-logo">Novo Registro</div>
+            <p class="text-muted small">Selecione seu perfil e preencha os dados</p>
+        </div>
+
+        <form action="/auth/register" method="POST">
+            <!-- Seleção de Tipo (Visual Novo) -->
+            <div class="role-selector">
+                <label class="w-100">
+                    <input type="radio" name="tipo" value="aluno" class="hidden" checked onchange="toggleCampos('aluno')">
+                    <div class="role-option">Aluno 🎓</div>
+                </label>
+                <label class="w-100">
+                    <input type="radio" name="tipo" value="professor" class="hidden" onchange="toggleCampos('professor')">
+                    <div class="role-option">Professor 👨‍🏫</div>
+                </label>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Nome Completo</label>
+                <input type="text" name="nome" class="form-control" placeholder="Ex: João Silva" required>
+            </div>
+
+            <!-- Campos Dinâmicos (Só aparecem para Aluno) -->
+            <div id="camposExtrasAluno">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">RA</label>
+                        <input type="text" name="ra" class="form-control" placeholder="123456">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Turma</label>
+                        <input type="text" name="turma" class="form-control" placeholder="3º A">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">E-mail</label>
+                <input type="email" name="email" class="form-control" placeholder="contato@escola.com" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Senha</label>
+                <input type="password" name="senha" class="form-control" placeholder="Crie uma senha" required>
+            </div>
+
+            <button type="submit" class="btn btn-auth w-100">Registrar Agora</button>
+        </form>
+
+        <div class="text-center mt-4">
+            <span class="text-muted small">Já é cadastrado?</span>
+            <a class="switch-link small" onclick="toggleAuth()">Fazer Login</a>
+        </div>
+    </div>
+
+    <script>
+        // Alterna entre os cards de Login e Registro
+        function toggleAuth() {
+            document.getElementById('loginCard').classList.toggle('hidden');
+            document.getElementById('registerCard').classList.toggle('hidden');
+        }
+
+        // Mostra/Esconde RA e Turma conforme o perfil selecionado
+        function toggleCampos(tipo) {
+            const campos = document.getElementById('camposExtrasAluno');
+            if (tipo === 'professor') {
+                campos.classList.add('hidden');
+                // Opcional: remover obrigatoriedade dos campos de aluno se houver
+            } else {
+                campos.classList.remove('hidden');
+            }
+        }
+    </script>
 </body>
 </html>

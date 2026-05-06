@@ -7,66 +7,61 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f7;
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f7; }
+
+        /* Perfil Flutuante do Professor */
+        .profile-container { position: absolute; top: 20px; right: 20px; z-index: 1000; }
+        .profile-img { 
+            width: 50px; height: 50px; border-radius: 50%; object-fit: cover; 
+            border: 2px solid rgba(255,255,255,0.8); cursor: pointer; transition: transform 0.2s;
         }
+        .profile-img:hover { transform: scale(1.1); border-color: #fff; }
+
         /* Topo Elegante */
         .prof-hero {
             background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
-            color: white;
-            padding: 50px 0 80px 0;
-            border-bottom-left-radius: 40px;
-            border-bottom-right-radius: 40px;
+            color: white; padding: 50px 0 80px 0; border-bottom-left-radius: 40px;
+            border-bottom-right-radius: 40px; position: relative;
         }
-        .stats-container {
-            margin-top: -50px;
-        }
-        .card {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-        /* Estética do botão de baixar solicitada */
+        .stats-container { margin-top: -50px; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        
         .btn-download {
-            background-color: #e0f2fe;
-            color: #0369a1;
-            border: none;
-            font-weight: 600;
-            transition: all 0.2s;
+            background-color: #e0f2fe; color: #0369a1; border: none;
+            font-weight: 600; transition: all 0.2s;
         }
-        .btn-download:hover {
-            background-color: #bae6fd;
-            color: #0369a1;
-            transform: scale(1.02);
-        }
-        .badge-pendente {
-            background-color: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fcd34d;
-        }
-        .badge-corrigido {
-            background-color: #dcfce7;
-            color: #166534;
-            border: 1px solid #86efac;
-        }
-        .ra-text {
-            font-weight: 700;
-            color: #64748b;
-            font-size: 0.85rem;
-        }
+        .btn-download:hover { background-color: #bae6fd; transform: scale(1.02); }
+        
+        .badge-pendente { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .badge-corrigido { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .ra-text { font-weight: 700; color: #64748b; font-size: 0.85rem; }
     </style>
 </head>
 <body>
 
     <!-- CABEÇALHO -->
     <header class="prof-hero shadow">
+        <!-- MENU DE PERFIL IGUAL AO DO ALUNO -->
+        <div class="profile-container">
+            <div class="dropdown">
+                <img src="https://ui-avatars.com/api/?name=Professor&background=0D6EFD&color=fff" 
+                     alt="Perfil" class="profile-img dropdown-toggle" 
+                     data-bs-toggle="dropdown" id="profPhoto">
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                    <li class="dropdown-header fw-bold text-dark">Painel do Docente</li>
+                    <li><label class="dropdown-item" style="cursor:pointer">📸 Mudar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
+                    <li><a class="dropdown-item" href="#" onclick="abrirModalSenha()">🔑 Trocar Senha</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger fw-bold" href="/login.html">Sair do Sistema</a></li>
+                </ul>
+            </div>
+        </div>
+
         <div class="container d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="fw-bold m-0">Painel de Avaliação 👨‍🏫</h1>
                 <p class="opacity-75 mb-0">Gerencie as entregas, consulte RAs e lance notas com agilidade.</p>
             </div>
-            <a href="/login.html" class="btn btn-outline-light btn-sm px-4 rounded-pill">Sair do Sistema</a>
         </div>
     </header>
 
@@ -113,15 +108,100 @@
                             <th class="text-end">Ação</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelaCorpo">
-                        <!-- Conteúdo via JS -->
-                    </tbody>
+                    <tbody id="tabelaCorpo"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
+    <!-- MODAL ALTERAR SENHA (FUNCIONALIDADE NOVA) -->
+    <div class="modal fade" id="modalSenha" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-primary">Alterar Senha 🔑</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Nova Senha</label>
+                        <input type="password" id="novaSenha" class="form-control" oninput="validarSenhas()">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Confirmar Senha</label>
+                        <input type="password" id="confirmarSenha" class="form-control" oninput="validarSenhas()">
+                        <div id="feedbackSenha" class="small mt-1 d-none"></div>
+                    </div>
+                    <button id="btnSalvarSenha" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" onclick="salvarNovaSenha()" disabled>Atualizar Acesso</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // --- FUNÇÕES DE PERFIL ---
+        function changePhoto(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => document.getElementById('profPhoto').src = e.target.result;
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function abrirModalSenha() {
+            const modalElement = document.getElementById('modalSenha');
+            const modal = new bootstrap.Modal(modalElement);
+            document.getElementById('novaSenha').value = "";
+            document.getElementById('confirmarSenha').value = "";
+            document.getElementById('feedbackSenha').classList.add('d-none');
+            document.getElementById('btnSalvarSenha').disabled = true;
+            modal.show();
+        }
+
+        function validarSenhas() {
+            const s1 = document.getElementById('novaSenha').value;
+            const s2 = document.getElementById('confirmarSenha').value;
+            const f = document.getElementById('feedbackSenha');
+            const b = document.getElementById('btnSalvarSenha');
+            f.classList.remove('d-none');
+            
+            if (s1.length < 4) {
+                f.innerHTML = "⚠️ Mínimo 4 caracteres";
+                f.className = "small mt-1 text-warning";
+                b.disabled = true;
+            } else if(s1 === s2) {
+                f.innerHTML = "✅ Senhas coincidem";
+                f.className = "small mt-1 text-success";
+                b.disabled = false;
+            } else {
+                f.innerHTML = "❌ Senhas não batem";
+                f.className = "small mt-1 text-danger";
+                b.disabled = true;
+            }
+        }
+
+        async function salvarNovaSenha() {
+            const novaSenha = document.getElementById('novaSenha').value;
+            try {
+                const response = await fetch('/aluno/trocar-senha', { // Usamos a mesma rota de trocar senha
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ novaSenha: novaSenha })
+                });
+
+                if (response.ok) {
+                    alert("✅ Senha do professor atualizada!");
+                    bootstrap.Modal.getInstance(document.getElementById('modalSenha')).hide();
+                } else {
+                    alert("❌ Erro ao atualizar senha.");
+                }
+            } catch (error) {
+                alert("❌ Erro de conexão.");
+            }
+        }
+
+        // --- FUNÇÕES ACADÊMICAS ---
         async function carregarAtividades() {
             try {
                 const res = await fetch('/atividades/lista');
@@ -134,26 +214,19 @@
                 tbody.innerHTML = dados.map(atv => `
                     <tr>
                         <td><span class="ra-text">${atv.ra_aluno || '---'}</span></td>
+                        <td><div class="fw-semibold">${atv.nome_aluno}</div></td>
                         <td>
-                            <div class="fw-semibold">${atv.nome_aluno}</div>
-                        </td>
-                        <td>
-                            <!-- BOTÃO COM A ESTÉTICA QUE VOCÊ PREFERE -->
                             <a href="/uploads/${atv.caminho_arquivo}" class="btn btn-sm btn-download rounded-pill px-3" download="${atv.nome_arquivo}">
                                 ⬇️ ${atv.nome_arquivo}
                             </a>
                         </td>
-                        <td>
-                            <div class="small text-muted">${new Date(atv.data_envio).toLocaleString('pt-BR')}</div>
-                        </td>
+                        <td><div class="small text-muted">${new Date(atv.data_envio).toLocaleString('pt-BR')}</div></td>
                         <td>
                             <span class="badge ${atv.corrigido ? 'badge-corrigido' : 'badge-pendente'} rounded-pill">
                                 ${atv.corrigido ? 'Avaliado' : 'Pendente'}
                             </span>
                         </td>
-                        <td>
-                            <strong class="text-primary fs-5">${atv.nota !== null ? atv.nota : '--'}</strong>
-                        </td>
+                        <td><strong class="text-primary fs-5">${atv.nota !== null ? atv.nota : '--'}</strong></td>
                         <td class="text-end">
                             <button onclick="lancarNota(${atv.id})" class="btn btn-dark btn-sm rounded-pill px-4">
                                 ${atv.corrigido ? 'Reavaliar' : 'Lançar Nota'}
@@ -169,7 +242,6 @@
         async function lancarNota(id) {
             const nota = prompt("Qual a nota do aluno?");
             if (nota === null) return;
-
             const feedback = prompt("Feedback:");
             if (feedback === null) return;
 
