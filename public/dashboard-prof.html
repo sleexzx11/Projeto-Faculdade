@@ -7,7 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f7; }
+        /* 🛡️ BLOQUEIO VISUAL INICIAL: A página só aparece se o JS autorizar */
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f7; display: none; }
 
         .profile-container { position: absolute; top: 20px; right: 20px; z-index: 1000; }
         .profile-img { 
@@ -60,7 +61,6 @@
                     <li><label class="dropdown-item mt-2" style="cursor:pointer">📸 Mudar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
                     <li><a class="dropdown-item" href="#" onclick="abrirModalSenha()">🔑 Trocar Senha</a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <!-- ROTA DE LOGOUT ATUALIZADA -->
                     <li><a class="dropdown-item text-danger fw-bold" href="/auth/logout">Sair do Sistema</a></li>
                 </ul>
             </div>
@@ -145,29 +145,31 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Carregar dados do perfil (Unificado)
-        async function carregarPerfilProfessor() {
+        // 🛡️ ATUALIZAÇÃO: VERIFICAÇÃO DE ACESSO IMEDIATA
+        (async function verificarAcesso() {
             try {
                 const response = await fetch('/api/perfil');
-                if (response.ok) {
-                    const dados = await response.json();
-                    
-                    // Verifica se o usuário é realmente um professor
-                    if(dados.tipo !== 'professor') {
-                        window.location.href = '/dashboard-aluno.html';
-                        return;
-                    }
+                const dados = await response.json();
 
-                    document.getElementById('menuNomeProf').innerText = dados.nome;
-                    document.getElementById('welcomeProf').innerText = dados.nome;
-                    document.getElementById('profPhoto').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=0D6EFD&color=fff`;
-                } else {
-                    window.location.href = '/login.html';
+                // Se não estiver logado ou se o tipo NÃO for professor, bloqueia e redireciona
+                if (!response.ok || dados.tipo !== 'professor') {
+                    window.location.href = '/login.html'; 
+                    return;
                 }
+
+                // Autorizado: Mostra o corpo da página e preenche os dados
+                document.body.style.display = 'block';
+                document.getElementById('menuNomeProf').innerText = dados.nome;
+                document.getElementById('welcomeProf').innerText = dados.nome;
+                document.getElementById('profPhoto').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=0D6EFD&color=fff`;
+                
+                // Inicia o carregamento das atividades
+                carregarAtividades();
+
             } catch (error) {
-                console.error("Erro ao carregar dados do professor");
+                window.location.href = '/login.html';
             }
-        }
+        })();
 
         // --- FUNÇÕES DE PERFIL ---
         function changePhoto(input) {
@@ -259,7 +261,7 @@
                     </tr>
                 `).join('');
             } catch (err) {
-                console.error("Erro ao carregar atividades ou acesso não autorizado.");
+                console.error("Erro ao carregar atividades.");
             }
         }
 
@@ -287,10 +289,6 @@
                 alert("Erro de conexão.");
             }
         }
-
-        // Iniciar
-        carregarPerfilProfessor();
-        carregarAtividades();
     </script>
 </body>
 </html>
