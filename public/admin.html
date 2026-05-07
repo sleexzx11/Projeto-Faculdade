@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Esconde o corpo da página até que o acesso seja verificado */
+        body { display: none; }
+        .hidden { display: none; }
+        .suggestion-box {
+            font-size: 0.85rem; padding: 8px 12px;
+            background-color: #fff3cd; border: 1px solid #ffeeba;
+            color: #856404; border-radius: 8px; margin-top: 5px; cursor: pointer;
+        }
+    </style>
+    
+    <script>
+        // --- BLOQUEIO DE SEGURANÇA IMEDIATO ---
+        (async function verificarAcesso() {
+            try {
+                const res = await fetch('/api/perfil');
+                const user = await res.json();
+
+                // LISTA DE ADMINS (Sempre em minúsculas)
+                const adminsPermitidos = ['gustavo@gmail.com', 'admin@faculdade.com'];
+
+                // Log para ajudar a identificar o erro no F12
+                console.log("Sistema detectou o email:", user.email);
+
+                // Normalização para evitar erros de digitação ou caixa alta
+                const emailLogado = user.email ? user.email.toLowerCase().trim() : null;
+
+                if (!res.ok || !emailLogado || !adminsPermitidos.includes(emailLogado)) {
+                    console.error("Acesso Negado para:", emailLogado);
+                    alert("Acesso Negado: Área restrita a administradores.");
+                    window.location.href = '/login.html';
+                } else {
+                    // Se for admin, exibe a página
+                    document.documentElement.style.display = 'block';
+                    document.body.style.display = 'block';
+                }
+            } catch (err) {
+                console.error("Erro na verificação de perfil:", err);
+                window.location.href = '/login.html';
+            }
+        })();
+    </script>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="card shadow border-0">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Painel de Controle: Administrador 🔐</h5>
+                <a href="/auth/logout" class="btn btn-outline-light btn-sm">Sair</a>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Autorizar Novo Professor:</label>
+                    <div class="input-group">
+                        <input type="email" id="emailProfessor" class="form-control" placeholder="E-mail do professor">
+                        <button class="btn btn-success" onclick="autorizarEmail()">Autorizar</button>
+                    </div>
+                    <div id="emailSuggestion" class="suggestion-box hidden">
+                        💡 Você quis dizer <strong id="suggestedEmail"></strong>? Clique aqui para corrigir.
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover mt-4">
+                        <thead class="table-light">
+                            <tr>
+                                <th>E-mail Autorizado</th>
+                                <th>Data de Autorização</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaAutorizados">
+                            <!-- JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const dominiosPopulares = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com'];
+    const inputEmail = document.getElementById('emailProfessor');
+    const areaSugestao = document.getElementById('emailSuggestion');
+    const textoSugestao = document.getElementById('suggestedEmail');
+
+    inputEmail.addEventListener('blur', function() {
+        const email = this.value.trim().toLowerCase();
+        if (!email.includes('@')) return;
+        const [usuario, dominio] = email.split('@');
+        const sugestao = dominiosPopulares.find(d => d !== dominio && d.startsWith(dominio.substring(0, 3)));
+        if (sugestao) {
+            const emailCorreto = `${usuario}@${sugestao}`;
+            textoSugestao.innerText = emailCorreto;
+            areaSugestao.classList.remove('hidden');
+            areaSugestao.onclick = () => { inputEmail.value = emailCorreto; areaSugestao.classList.add('hidden'); };
+        } else { areaSugestao.classList.add('hidden'); }
+    });
+
+    async function carregarLista() {
+        try {
+            const res = await fetch('/admin/lista-autorizados');
+            if (!res.ok) throw new Error("Não autorizado");
+            const emails = await res.json();
+            const tbody = document.getElementById('listaAutorizados');
+            tbody.innerHTML = emails.map(item => `
+                <tr>
+                    <td>${item.email}</td>
+                    <td>${new Date(item.adicionado_em).toLocaleDateString()}</td>
+                    <td><button class="btn btn-danger btn-sm" onclick="remover('${item.id}')">Revogar</button></td>
+                </tr>
+            `).join('');
+        } catch (err) { console.error("Erro ao carregar lista"); }
+    }
+
+    async function autorizarEmail() {
+        const email = inputEmail.value.trim();
+        if(!email) return;
+        const res = await fetch('/admin/autorizar-professor', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email })
+        });
+        if(res.ok) { carregarLista(); inputEmail.value = ''; areaSugestao.classList.add('hidden'); }
+    }
+
+    async function remover(id) {
+        if (!confirm("Revogar acesso?")) return;
+        const res = await fetch(`/admin/remover-autorizacao/${id}`, { method: 'DELETE' });
+        if (res.ok) carregarLista();
+    }
+
+    // Só carrega a lista após a verificação de segurança inicial
+    carregarLista();
+</script>
+</body>
+</html>

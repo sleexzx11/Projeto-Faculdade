@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Estilo para esconder o conteúdo enquanto verifica o login */
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; display: none; }
         
         .profile-container { position: absolute; top: 20px; right: 20px; z-index: 1000; }
@@ -18,10 +17,8 @@
         .profile-img:hover { transform: scale(1.1); border-color: #fff; }
 
         .user-info-header {
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #eee;
-            border-radius: 8px 8px 0 0;
+            padding: 15px; background-color: #f8f9fa;
+            border-bottom: 1px solid #eee; border-radius: 8px 8px 0 0;
         }
 
         .hero-section {
@@ -36,22 +33,44 @@
         .bg-warning-soft { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
 
         .btn-download-aluno {
-            background-color: #f1f5f9;
-            color: #475569;
-            border: none;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 5px 12px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 8px;
-            transition: 0.2s;
+            background-color: #f1f5f9; color: #475569; border: none;
+            font-size: 0.75rem; font-weight: 600; padding: 5px 12px;
+            border-radius: 8px; text-decoration: none; display: inline-block;
+            margin-top: 8px; transition: 0.2s;
         }
         .btn-download-aluno:hover { background-color: #e2e8f0; color: #1e293b; }
+
+        /* Estilo para os títulos das seções de atividades */
+        .section-divider {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 25px 0 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        .section-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #e2e8f0;
+            margin-left: 15px;
+        }
     </style>
 </head>
 <body>
+
+    <!-- 🔔 CONTAINER DE NOTIFICAÇÕES (TOAST) -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toastFeedback" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMensagem"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
 
     <header class="hero-section shadow-lg">
         <div class="profile-container">
@@ -83,12 +102,15 @@
             <div class="col-lg-4">
                 <div class="card shadow p-4 mt-5 border-top border-primary border-4">
                     <h5 class="fw-bold mb-3">🚀 Novo Envio</h5>
-                    <form action="/enviar-atividade" method="POST" enctype="multipart/form-data">
+                    <form id="formUploadAtividade">
                         <div class="mb-3">
                             <label class="form-label text-muted small">Selecione o arquivo (PDF, DOCX, etc)</label>
-                            <input type="file" name="arquivo" class="form-control" required>
+                            <input type="file" name="arquivo" id="arquivoInput" class="form-control" required>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">Entregar Atividade</button>
+                        <button type="submit" id="btnEnviar" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                            <span id="btnTexto">Entregar Atividade</span>
+                            <span id="btnLoader" class="spinner-border spinner-border-sm d-none"></span>
+                        </button>
                     </form>
                 </div>
             </div>
@@ -96,17 +118,33 @@
             <div class="col-lg-8">
                 <div class="card shadow p-4 mt-5">
                     <h5 class="fw-bold mb-4">📊 Meu Desempenho</h5>
-                    <div class="table-responsive">
+
+                    <!-- SEÇÃO: PENDENTES -->
+                    <div class="section-divider">⏳ Aguardando Correção</div>
+                    <div class="table-responsive mb-4">
                         <table class="table align-middle">
                             <thead class="table-light">
                                 <tr>
                                     <th>Atividade</th>
                                     <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listaPendentes"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- SEÇÃO: CORRIGIDAS -->
+                    <div class="section-divider">✅ Atividades Corrigidas</div>
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Atividade</th>
                                     <th>Nota</th>
                                     <th>Feedback</th>
                                 </tr>
                             </thead>
-                            <tbody id="minhasAtividades"></tbody>
+                            <tbody id="listaCorrigidas"></tbody>
                         </table>
                     </div>
                 </div>
@@ -140,63 +178,106 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 🛡️ ATUALIZAÇÃO: BLOQUEIO DE ACESSO NÃO AUTORIZADO
+        function mostrarNotificacao(mensagem, sucesso = true) {
+            const toastEl = document.getElementById('toastFeedback');
+            const msgEl = document.getElementById('toastMensagem');
+            const toast = new bootstrap.Toast(toastEl);
+            toastEl.classList.remove('bg-success', 'bg-danger');
+            toastEl.classList.add(sucesso ? 'bg-success' : 'bg-danger');
+            msgEl.innerText = mensagem;
+            toast.show();
+        }
+
         (async function verificarAcesso() {
             try {
                 const response = await fetch('/api/perfil');
                 const dados = await response.json();
-
                 if (!response.ok || dados.tipo !== 'aluno') {
-                    // Se não for aluno ou não estiver logado, redireciona e não mostra a página
                     window.location.href = '/login.html';
                     return;
                 }
-
-                // Se passou no teste, exibe o conteúdo e preenche os dados
                 document.body.style.display = 'block';
                 document.getElementById('menuNome').innerText = dados.nome;
                 document.getElementById('welcomeNome').innerText = dados.nome;
                 document.getElementById('menuRA').innerText = "RA: " + (dados.ra || "N/A");
                 document.getElementById('userPhoto').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=random`;
-                
-                // Carrega a lista após confirmar o acesso
                 carregarMinhasAtividades();
-            } catch (error) {
-                window.location.href = '/login.html';
-            }
+            } catch (error) { window.location.href = '/login.html'; }
         })();
 
+        document.getElementById('formUploadAtividade').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const btn = document.getElementById('btnEnviar');
+            const btnTexto = document.getElementById('btnTexto');
+            const btnLoader = document.getElementById('btnLoader');
+
+            btn.disabled = true;
+            btnTexto.classList.add('d-none');
+            btnLoader.classList.remove('d-none');
+
+            try {
+                const response = await fetch('/enviar-atividade', { method: 'POST', body: formData });
+                if (response.ok) {
+                    mostrarNotificacao("🎉 Atividade entregue com sucesso!");
+                    form.reset();
+                    carregarMinhasAtividades();
+                } else {
+                    const errData = await response.json();
+                    mostrarNotificacao("❌ Erro: " + (errData.erro || "Falha ao enviar"), false);
+                }
+            } catch (error) { mostrarNotificacao("❌ Erro de conexão.", false); }
+            finally {
+                btn.disabled = false;
+                btnTexto.classList.remove('d-none');
+                btnLoader.classList.add('d-none');
+            }
+        });
+
+        // 📊 CARREGAR E SEPARAR ATIVIDADES
         async function carregarMinhasAtividades() {
             try {
                 const r = await fetch('/aluno/minhas-atividades');
                 const dados = await r.json();
-                const tbody = document.getElementById('minhasAtividades');
+                
+                const tbodyPendentes = document.getElementById('listaPendentes');
+                const tbodyCorrigidas = document.getElementById('listaCorrigidas');
                 
                 if(!dados || dados.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Nenhuma atividade enviada.</td></tr>';
+                    tbodyPendentes.innerHTML = '<tr><td colspan="2" class="text-center text-muted small py-3">Nenhuma atividade pendente.</td></tr>';
+                    tbodyCorrigidas.innerHTML = '<tr><td colspan="3" class="text-center text-muted small py-3">Nenhuma atividade corrigida.</td></tr>';
                     return;
                 }
-                tbody.innerHTML = dados.map(atv => `
+
+                // Filtragem
+                const pendentes = dados.filter(atv => !atv.corrigido);
+                const corrigidas = dados.filter(atv => atv.corrigido);
+
+                // Renderizar Pendentes
+                tbodyPendentes.innerHTML = pendentes.length ? pendentes.map(atv => `
                     <tr>
                         <td>
                             <div class="fw-bold">${atv.nome_arquivo}</div>
                             <div class="text-muted small">Enviado em: ${new Date(atv.data_envio).toLocaleDateString()}</div>
-                            <a href="/uploads/${atv.caminho_arquivo}" download="${atv.nome_arquivo}" class="btn-download-aluno">
-                                📥 Baixar meu arquivo
-                            </a>
                         </td>
-                        <td>
-                            <span class="badge ${atv.corrigido ? 'bg-success-soft' : 'bg-warning-soft'} status-badge">
-                                ${atv.corrigido ? '✅ Corrigido' : '⏳ Em Análise'}
-                            </span>
-                        </td>
-                        <td><span class="fs-5 fw-bold ${atv.nota >= 6 ? 'text-success' : 'text-danger'}">${atv.nota !== null ? atv.nota : '--'}</span></td>
-                        <td><p class="mb-0 small text-secondary">${atv.feedback || 'Sem feedback'}</p></td>
+                        <td><span class="badge bg-warning-soft status-badge">⏳ Em Análise</span></td>
                     </tr>
-                `).join('');
-            } catch (err) {
-                console.error("Erro ao carregar atividades");
-            }
+                `).join('') : '<tr><td colspan="2" class="text-center text-muted small py-3">Tudo corrigido! ✨</td></tr>';
+
+                // Renderizar Corrigidas
+                tbodyCorrigidas.innerHTML = corrigidas.length ? corrigidas.map(atv => `
+                    <tr>
+                        <td>
+                            <div class="fw-bold">${atv.nome_arquivo}</div>
+                            <a href="/uploads/${atv.caminho_arquivo}" download="${atv.nome_arquivo}" class="btn-download-aluno">📥 Baixar arquivo</a>
+                        </td>
+                        <td><span class="fs-5 fw-bold ${atv.nota >= 6 ? 'text-success' : 'text-danger'}">${atv.nota}</span></td>
+                        <td><p class="mb-0 small text-secondary" style="max-width: 250px;">${atv.feedback || 'Sem observações'}</p></td>
+                    </tr>
+                `).join('') : '<tr><td colspan="3" class="text-center text-muted small py-3">Aguardando correções iniciais.</td></tr>';
+
+            } catch (err) { console.error("Erro ao carregar atividades"); }
         }
 
         function changePhoto(input) {
@@ -207,9 +288,7 @@
             }
         }
 
-        function abrirModalSenha() {
-            new bootstrap.Modal(document.getElementById('modalSenha')).show();
-        }
+        function abrirModalSenha() { new bootstrap.Modal(document.getElementById('modalSenha')).show(); }
 
         function validarSenhas() {
             const s1 = document.getElementById('novaSenha').value;
@@ -217,7 +296,6 @@
             const f = document.getElementById('feedbackSenha');
             const b = document.getElementById('btnSalvarSenha');
             f.classList.remove('d-none');
-            
             if (s1.length < 4) {
                 f.innerHTML = "⚠️ Mínimo 4 caracteres";
                 f.className = "small mt-1 text-warning";
@@ -241,7 +319,6 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ novaSenha })
                 });
-                
                 if (response.ok) {
                     alert("Senha alterada com sucesso!");
                     bootstrap.Modal.getInstance(document.getElementById('modalSenha')).hide();
@@ -249,9 +326,7 @@
                     const result = await response.json();
                     alert("Erro: " + result.erro);
                 }
-            } catch (err) {
-                alert("Erro ao conectar com o servidor.");
-            }
+            } catch (err) { alert("Erro ao conectar."); }
         }
     </script>
 </body>

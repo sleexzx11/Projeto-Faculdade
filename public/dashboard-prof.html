@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* 🛡️ BLOQUEIO VISUAL INICIAL: A página só aparece se o JS autorizar */
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f7; display: none; }
 
         .profile-container { position: absolute; top: 20px; right: 20px; z-index: 1000; }
@@ -24,11 +23,8 @@
         }
         
         .user-info-header {
-            padding: 10px 15px;
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #eee;
-            border-radius: 8px 8px 0 0;
-            font-size: 0.9rem;
+            padding: 10px 15px; background-color: #f8f9fa;
+            border-bottom: 1px solid #eee; border-radius: 8px 8px 0 0; font-size: 0.9rem;
         }
 
         .stats-container { margin-top: -50px; }
@@ -43,6 +39,16 @@
         .badge-pendente { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
         .badge-corrigido { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .ra-text { font-weight: 700; color: #64748b; font-size: 0.85rem; }
+        
+        /* Estilo para separar as seções */
+        .section-title {
+            font-size: 0.9rem; font-weight: 700; color: #475569;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin-bottom: 15px; display: flex; align-items: center;
+        }
+        .section-title::after {
+            content: ""; flex: 1; height: 1px; background: #cbd5e1; margin-left: 15px;
+        }
     </style>
 </head>
 <body>
@@ -94,10 +100,11 @@
             </div>
         </div>
 
-        <div class="card p-4 shadow-sm mb-5 mt-4">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold m-0">Lista de Trabalhos</h5>
-                <button onclick="carregarAtividades()" class="btn btn-light btn-sm border">🔄 Atualizar</button>
+        <!-- SEÇÃO 1: PENDENTES -->
+        <div class="card p-4 shadow-sm mb-4 mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="section-title w-100 m-0">📥 Trabalhos Pendentes</div>
+                <button onclick="carregarAtividades()" class="btn btn-light btn-sm border ms-3">🔄</button>
             </div>
 
             <div class="table-responsive">
@@ -106,14 +113,33 @@
                         <tr>
                             <th>RA</th>
                             <th>Aluno</th>
-                            <th>Arquivo Enviado</th>
-                            <th>Data de Entrega</th>
-                            <th>Status</th>
-                            <th>Nota</th>
+                            <th>Sala</th>
+                            <th>Arquivo</th>
+                            <th>Data</th>
                             <th class="text-end">Ação</th>
                         </tr>
                     </thead>
-                    <tbody id="tabelaCorpo"></tbody>
+                    <tbody id="tabelaPendentes"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 2: AVALIADOS -->
+        <div class="card p-4 shadow-sm mb-5">
+            <div class="section-title">✅ Histórico de Avaliações</div>
+            <div class="table-responsive">
+                <table class="table align-middle table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>RA</th>
+                            <th>Aluno</th>
+                            <th>Sala</th>
+                            <th>Nota</th>
+                            <th>Data Avaliação</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaAvaliados"></tbody>
                 </table>
             </div>
         </div>
@@ -145,130 +171,74 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // 🛡️ ATUALIZAÇÃO: VERIFICAÇÃO DE ACESSO IMEDIATA
         (async function verificarAcesso() {
             try {
                 const response = await fetch('/api/perfil');
                 const dados = await response.json();
-
-                // Se não estiver logado ou se o tipo NÃO for professor, bloqueia e redireciona
                 if (!response.ok || dados.tipo !== 'professor') {
                     window.location.href = '/login.html'; 
                     return;
                 }
-
-                // Autorizado: Mostra o corpo da página e preenche os dados
                 document.body.style.display = 'block';
                 document.getElementById('menuNomeProf').innerText = dados.nome;
                 document.getElementById('welcomeProf').innerText = dados.nome;
                 document.getElementById('profPhoto').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=0D6EFD&color=fff`;
-                
-                // Inicia o carregamento das atividades
                 carregarAtividades();
-
-            } catch (error) {
-                window.location.href = '/login.html';
-            }
+            } catch (error) { window.location.href = '/login.html'; }
         })();
 
-        // --- FUNÇÕES DE PERFIL ---
-        function changePhoto(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => document.getElementById('profPhoto').src = e.target.result;
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        function abrirModalSenha() {
-            new bootstrap.Modal(document.getElementById('modalSenha')).show();
-        }
-
-        function validarSenhas() {
-            const s1 = document.getElementById('novaSenha').value;
-            const s2 = document.getElementById('confirmarSenha').value;
-            const f = document.getElementById('feedbackSenha');
-            const b = document.getElementById('btnSalvarSenha');
-            f.classList.remove('d-none');
-            
-            if (s1.length < 4) {
-                f.innerHTML = "⚠️ Mínimo 4 caracteres";
-                f.className = "small mt-1 text-warning";
-                b.disabled = true;
-            } else if(s1 === s2) {
-                f.innerHTML = "✅ Senhas coincidem";
-                f.className = "small mt-1 text-success";
-                b.disabled = false;
-            } else {
-                f.innerHTML = "❌ Senhas não batem";
-                f.className = "small mt-1 text-danger";
-                b.disabled = true;
-            }
-        }
-
-        async function salvarNovaSenha() {
-            const novaSenha = document.getElementById('novaSenha').value;
-            try {
-                const response = await fetch('/auth/trocar-senha', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ novaSenha })
-                });
-
-                if (response.ok) {
-                    alert("✅ Senha atualizada!");
-                    bootstrap.Modal.getInstance(document.getElementById('modalSenha')).hide();
-                } else {
-                    alert("Erro ao atualizar senha.");
-                }
-            } catch (err) {
-                alert("Erro de conexão.");
-            }
-        }
-
-        // --- FUNÇÕES ACADÊMICAS ---
         async function carregarAtividades() {
             try {
                 const res = await fetch('/atividades/lista');
-                if (!res.ok) throw new Error();
                 const dados = await res.json();
                 
-                document.getElementById('countTotal').innerText = dados.length;
-                document.getElementById('countPendente').innerText = dados.filter(a => !a.corrigido).length;
+                const pendentes = dados.filter(a => !a.corrigido);
+                const avaliados = dados.filter(a => a.corrigido);
 
-                const tbody = document.getElementById('tabelaCorpo');
-                tbody.innerHTML = dados.map(atv => `
+                document.getElementById('countTotal').innerText = dados.length;
+                document.getElementById('countPendente').innerText = pendentes.length;
+
+                // Preencher Pendentes
+                const htmlPendentes = pendentes.map(atv => `
                     <tr>
                         <td><span class="ra-text">${atv.ra_aluno || '---'}</span></td>
                         <td><div class="fw-semibold">${atv.nome_aluno}</div></td>
+                        <td><span class="badge bg-secondary opacity-75">${atv.sala_aluno || 'N/A'}</span></td>
                         <td>
                             <a href="/uploads/${atv.caminho_arquivo}" class="btn btn-sm btn-download rounded-pill px-3" download="${atv.nome_arquivo}">
-                                ⬇️ ${atv.nome_arquivo}
+                                ⬇️ DOC
                             </a>
                         </td>
-                        <td><div class="small text-muted">${new Date(atv.data_envio).toLocaleString('pt-BR')}</div></td>
-                        <td>
-                            <span class="badge ${atv.corrigido ? 'badge-corrigido' : 'badge-pendente'} rounded-pill">
-                                ${atv.corrigido ? 'Avaliado' : 'Pendente'}
-                            </span>
-                        </td>
-                        <td><strong class="text-primary fs-5">${atv.nota !== null ? atv.nota : '--'}</strong></td>
+                        <td><div class="small text-muted">${new Date(atv.data_envio).toLocaleDateString('pt-BR')}</div></td>
                         <td class="text-end">
-                            <button onclick="lancarNota(${atv.id})" class="btn btn-dark btn-sm rounded-pill px-4">
-                                ${atv.corrigido ? 'Reavaliar' : 'Lançar Nota'}
-                            </button>
+                            <button onclick="lancarNota(${atv.id})" class="btn btn-dark btn-sm rounded-pill px-3">Lançar Nota</button>
                         </td>
                     </tr>
-                `).join('');
-            } catch (err) {
-                console.error("Erro ao carregar atividades.");
-            }
+                `).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Nenhum trabalho pendente</td></tr>';
+
+                // Preencher Avaliados
+                const htmlAvaliados = avaliados.map(atv => `
+                    <tr>
+                        <td><span class="ra-text">${atv.ra_aluno || '---'}</span></td>
+                        <td><div class="fw-semibold text-muted">${atv.nome_aluno}</div></td>
+                        <td><span class="badge bg-light text-dark border">${atv.sala_aluno || 'N/A'}</span></td>
+                        <td><strong class="text-primary">${atv.nota}</strong></td>
+                        <td><div class="small text-muted">Corrigido em: ${new Date().toLocaleDateString('pt-BR')}</div></td>
+                        <td class="text-end">
+                            <button onclick="lancarNota(${atv.id})" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Reavaliar</button>
+                        </td>
+                    </tr>
+                `).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Nenhum trabalho avaliado ainda</td></tr>';
+
+                document.getElementById('tabelaPendentes').innerHTML = htmlPendentes;
+                document.getElementById('tabelaAvaliados').innerHTML = htmlAvaliados;
+
+            } catch (err) { console.error("Erro ao carregar atividades."); }
         }
 
         async function lancarNota(id) {
             const nota = prompt("Qual a nota do aluno? (0-10)");
             if (nota === null || nota === "") return;
-            
             const feedback = prompt("Feedback para o aluno:");
             if (feedback === null) return;
 
@@ -282,12 +252,31 @@
                         feedback 
                     })
                 });
-
                 if(res.ok) carregarAtividades();
                 else alert("Erro ao salvar nota.");
-            } catch (err) {
-                alert("Erro de conexão.");
-            }
+            } catch (err) { alert("Erro de conexão."); }
+        }
+
+        // Funções de Perfil mantidas conforme original...
+        function changePhoto(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = (e) => document.getElementById('profPhoto').src = e.target.result; reader.readAsDataURL(input.files[0]); } }
+        function abrirModalSenha() { new bootstrap.Modal(document.getElementById('modalSenha')).show(); }
+        function validarSenhas() {
+            const s1 = document.getElementById('novaSenha').value;
+            const s2 = document.getElementById('confirmarSenha').value;
+            const f = document.getElementById('feedbackSenha');
+            const b = document.getElementById('btnSalvarSenha');
+            f.classList.remove('d-none');
+            if (s1.length < 4) { f.innerHTML = "⚠️ Mínimo 4 caracteres"; f.className = "small mt-1 text-warning"; b.disabled = true; }
+            else if(s1 === s2) { f.innerHTML = "✅ Senhas coincidem"; f.className = "small mt-1 text-success"; b.disabled = false; }
+            else { f.innerHTML = "❌ Senhas não batem"; f.className = "small mt-1 text-danger"; b.disabled = true; }
+        }
+        async function salvarNovaSenha() {
+            const novaSenha = document.getElementById('novaSenha').value;
+            try {
+                const response = await fetch('/auth/trocar-senha', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ novaSenha }) });
+                if (response.ok) { alert("✅ Senha atualizada!"); bootstrap.Modal.getInstance(document.getElementById('modalSenha')).hide(); }
+                else { alert("Erro ao atualizar senha."); }
+            } catch (err) { alert("Erro de conexão."); }
         }
     </script>
 </body>
