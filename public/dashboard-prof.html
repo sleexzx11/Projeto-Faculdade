@@ -16,6 +16,25 @@
         }
         .profile-img:hover { transform: scale(1.1); border-color: #fff; }
 
+        /* --- ATUALIZAÇÃO: ESTADOS HOVER DO PERFIL --- */
+        .dropdown-item {
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            margin: 2px 8px;
+            width: calc(100% - 16px);
+            padding: 8px 12px;
+        }
+        .dropdown-item:hover {
+            background-color: #f0f7ff;
+            color: #0d6efd;
+            transform: translateX(5px);
+        }
+        .dropdown-item.text-danger:hover {
+            background-color: #fff1f0;
+            color: #dc3545 !important;
+        }
+        /* ------------------------------------------- */
+
         .prof-hero {
             background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
             color: white; padding: 50px 0 80px 0; border-bottom-left-radius: 40px;
@@ -23,7 +42,7 @@
         }
         
         .user-info-header {
-            padding: 10px 15px; background-color: #f8f9fa;
+            padding: 12px 15px; background-color: #f8f9fa;
             border-bottom: 1px solid #eee; border-radius: 8px 8px 0 0; font-size: 0.9rem;
         }
 
@@ -34,13 +53,10 @@
             background-color: #e0f2fe; color: #0369a1; border: none;
             font-weight: 600; transition: all 0.2s;
         }
-        .btn-download:hover { background-color: #bae6fd; transform: scale(1.02); }
+        .btn-download:hover { background-color: #bae6fd; transform: scale(1.05); }
         
-        .badge-pendente { background-color: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-        .badge-corrigido { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
         .ra-text { font-weight: 700; color: #64748b; font-size: 0.85rem; }
         
-        /* Estilo para separar as seções */
         .section-title {
             font-size: 0.9rem; font-weight: 700; color: #475569;
             text-transform: uppercase; letter-spacing: 1px;
@@ -59,15 +75,15 @@
                 <img src="https://ui-avatars.com/api/?name=Professor&background=0D6EFD&color=fff" 
                      alt="Perfil" class="profile-img dropdown-toggle" 
                      data-bs-toggle="dropdown" id="profPhoto">
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="min-width: 200px;">
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="min-width: 220px;">
                     <div class="user-info-header">
                         <div class="fw-bold text-dark text-truncate" id="menuNomeProf">Carregando...</div>
                         <div class="text-muted small">Professor(a)</div>
                     </div>
-                    <li><label class="dropdown-item mt-2" style="cursor:pointer">📸 Mudar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
+                    <li class="mt-2"><label class="dropdown-item" style="cursor:pointer">📸 Mudar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
                     <li><a class="dropdown-item" href="#" onclick="abrirModalSenha()">🔑 Trocar Senha</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger fw-bold" href="/auth/logout">Sair do Sistema</a></li>
+                    <li><hr class="dropdown-divider mx-2"></li>
+                    <li class="mb-2"><a class="dropdown-item text-danger fw-bold" href="/auth/logout">🚪 Sair do Sistema</a></li>
                 </ul>
             </div>
         </div>
@@ -100,7 +116,6 @@
             </div>
         </div>
 
-        <!-- SEÇÃO 1: PENDENTES -->
         <div class="card p-4 shadow-sm mb-4 mt-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="section-title w-100 m-0">📥 Trabalhos Pendentes</div>
@@ -108,7 +123,7 @@
             </div>
 
             <div class="table-responsive">
-                <table class="table align-middle">
+                <table class="table align-middle table-hover">
                     <thead class="table-light">
                         <tr>
                             <th>RA</th>
@@ -116,7 +131,7 @@
                             <th>Sala</th>
                             <th>Arquivo</th>
                             <th>Data</th>
-                            <th class="text-end">Ação</th>
+                            <th class="text-center">Ação</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaPendentes"></tbody>
@@ -124,7 +139,6 @@
             </div>
         </div>
 
-        <!-- SEÇÃO 2: AVALIADOS -->
         <div class="card p-4 shadow-sm mb-5">
             <div class="section-title">✅ Histórico de Avaliações</div>
             <div class="table-responsive">
@@ -134,9 +148,10 @@
                             <th>RA</th>
                             <th>Aluno</th>
                             <th>Sala</th>
+                            <th>Arquivo</th>
                             <th>Nota</th>
-                            <th>Data Avaliação</th>
-                            <th class="text-end">Ação</th>
+                            <th>Status</th>
+                            <th class="text-center">Ação</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaAvaliados"></tbody>
@@ -145,7 +160,6 @@
         </div>
     </div>
 
-    <!-- MODAL ALTERAR SENHA -->
     <div class="modal fade" id="modalSenha" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -171,6 +185,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Lógica de autenticação e carregamento
         (async function verificarAcesso() {
             try {
                 const response = await fetch('/api/perfil');
@@ -198,37 +213,42 @@
                 document.getElementById('countTotal').innerText = dados.length;
                 document.getElementById('countPendente').innerText = pendentes.length;
 
-                // Preencher Pendentes
+                // Renderizar Pendentes (Mantendo suas badges bg-light)
                 const htmlPendentes = pendentes.map(atv => `
                     <tr>
                         <td><span class="ra-text">${atv.ra_aluno || '---'}</span></td>
                         <td><div class="fw-semibold">${atv.nome_aluno}</div></td>
-                        <td><span class="badge bg-secondary opacity-75">${atv.sala_aluno || 'N/A'}</span></td>
+                        <td><span class="badge bg-light text-dark border">${atv.sala_aluno || 'N/A'}</span></td>
                         <td>
                             <a href="/uploads/${atv.caminho_arquivo}" class="btn btn-sm btn-download rounded-pill px-3" download="${atv.nome_arquivo}">
                                 ⬇️ DOC
                             </a>
                         </td>
                         <td><div class="small text-muted">${new Date(atv.data_envio).toLocaleDateString('pt-BR')}</div></td>
-                        <td class="text-end">
+                        <td class="text-center">
                             <button onclick="lancarNota(${atv.id})" class="btn btn-dark btn-sm rounded-pill px-3">Lançar Nota</button>
                         </td>
                     </tr>
                 `).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Nenhum trabalho pendente</td></tr>';
 
-                // Preencher Avaliados
+                // Renderizar Avaliados (Mantendo coluna de arquivo e centralização)
                 const htmlAvaliados = avaliados.map(atv => `
                     <tr>
                         <td><span class="ra-text">${atv.ra_aluno || '---'}</span></td>
                         <td><div class="fw-semibold text-muted">${atv.nome_aluno}</div></td>
                         <td><span class="badge bg-light text-dark border">${atv.sala_aluno || 'N/A'}</span></td>
+                        <td>
+                            <a href="/uploads/${atv.caminho_arquivo}" class="btn btn-sm btn-outline-info rounded-pill px-3" style="font-size: 0.75rem;" download="${atv.nome_arquivo}">
+                                ⬇️ Ver DOC
+                            </a>
+                        </td>
                         <td><strong class="text-primary">${atv.nota}</strong></td>
-                        <td><div class="small text-muted">Corrigido em: ${new Date().toLocaleDateString('pt-BR')}</div></td>
-                        <td class="text-end">
+                        <td><div class="small text-muted">Avaliada</div></td>
+                        <td class="text-center">
                             <button onclick="lancarNota(${atv.id})" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Reavaliar</button>
                         </td>
                     </tr>
-                `).join('') || '<tr><td colspan="6" class="text-center text-muted py-3">Nenhum trabalho avaliado ainda</td></tr>';
+                `).join('') || '<tr><td colspan="7" class="text-center text-muted py-3">Nenhum trabalho avaliado ainda</td></tr>';
 
                 document.getElementById('tabelaPendentes').innerHTML = htmlPendentes;
                 document.getElementById('tabelaAvaliados').innerHTML = htmlAvaliados;
@@ -246,18 +266,14 @@
                 const res = await fetch('/atividades/corrigir', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        id, 
-                        nota: parseFloat(nota.replace(',', '.')), 
-                        feedback 
-                    })
+                    body: JSON.stringify({ id, nota: parseFloat(nota.replace(',', '.')), feedback })
                 });
                 if(res.ok) carregarAtividades();
                 else alert("Erro ao salvar nota.");
             } catch (err) { alert("Erro de conexão."); }
         }
 
-        // Funções de Perfil mantidas conforme original...
+        // Funções auxiliares mantidas
         function changePhoto(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = (e) => document.getElementById('profPhoto').src = e.target.result; reader.readAsDataURL(input.files[0]); } }
         function abrirModalSenha() { new bootstrap.Modal(document.getElementById('modalSenha')).show(); }
         function validarSenhas() {

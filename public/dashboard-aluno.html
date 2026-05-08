@@ -16,6 +16,27 @@
         }
         .profile-img:hover { transform: scale(1.1); border-color: #fff; }
 
+        /* --- ATUALIZAÇÃO: ESTADOS HOVER DO MENU DE PERFIL --- */
+        .dropdown-item {
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            margin: 2px 8px;
+            width: calc(100% - 16px);
+            padding: 8px 12px;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f0f7ff;
+            color: #0d6efd;
+            transform: translateX(5px); /* Efeito de deslizar */
+        }
+
+        .dropdown-item.text-danger:hover {
+            background-color: #fff1f0;
+            color: #dc3545 !important;
+        }
+        /* --------------------------------------------------- */
+
         .user-info-header {
             padding: 15px; background-color: #f8f9fa;
             border-bottom: 1px solid #eee; border-radius: 8px 8px 0 0;
@@ -38,31 +59,20 @@
             border-radius: 8px; text-decoration: none; display: inline-block;
             margin-top: 8px; transition: 0.2s;
         }
-        .btn-download-aluno:hover { background-color: #e2e8f0; color: #1e293b; }
+        .btn-download-aluno:hover { background-color: #e2e8f0; color: #1e293b; transform: translateY(-2px); }
 
-        /* Estilo para os títulos das seções de atividades */
         .section-divider {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 25px 0 15px 0;
-            display: flex;
-            align-items: center;
+            font-size: 0.85rem; font-weight: 700; color: #64748b;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin: 25px 0 15px 0; display: flex; align-items: center;
         }
         .section-divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: #e2e8f0;
-            margin-left: 15px;
+            content: ""; flex: 1; height: 1px; background: #e2e8f0; margin-left: 15px;
         }
     </style>
 </head>
 <body>
 
-    <!-- 🔔 CONTAINER DE NOTIFICAÇÕES (TOAST) -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
         <div id="toastFeedback" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -79,14 +89,14 @@
                      alt="Perfil" class="profile-img dropdown-toggle" 
                      data-bs-toggle="dropdown" id="userPhoto">
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-0" style="min-width: 220px;">
-                    <div class="user-info-header">
+                    <div class="user-info-header text-start">
                         <div class="fw-bold text-dark text-truncate" id="menuNome">Carregando...</div>
                         <div class="text-muted small" id="menuRA">RA: --</div>
                     </div>
                     <li><label class="dropdown-item mt-2" style="cursor:pointer">📸 Alterar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
                     <li><a class="dropdown-item" href="#" onclick="abrirModalSenha()">🔑 Alterar Senha</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger fw-bold" href="/auth/logout">Deslogar</a></li>
+                    <li><hr class="dropdown-divider mx-2"></li>
+                    <li><a class="dropdown-item text-danger fw-bold mb-2" href="/auth/logout">🚪 Deslogar</a></li>
                 </ul>
             </div>
         </div>
@@ -119,10 +129,9 @@
                 <div class="card shadow p-4 mt-5">
                     <h5 class="fw-bold mb-4">📊 Meu Desempenho</h5>
 
-                    <!-- SEÇÃO: PENDENTES -->
                     <div class="section-divider">⏳ Aguardando Correção</div>
                     <div class="table-responsive mb-4">
-                        <table class="table align-middle">
+                        <table class="table align-middle table-hover">
                             <thead class="table-light">
                                 <tr>
                                     <th>Atividade</th>
@@ -133,10 +142,9 @@
                         </table>
                     </div>
 
-                    <!-- SEÇÃO: CORRIGIDAS -->
                     <div class="section-divider">✅ Atividades Corrigidas</div>
                     <div class="table-responsive">
-                        <table class="table align-middle">
+                        <table class="table align-middle table-hover">
                             <thead class="table-light">
                                 <tr>
                                     <th>Atividade</th>
@@ -152,7 +160,6 @@
         </div>
     </div>
 
-    <!-- MODAL SENHA -->
     <div class="modal fade" id="modalSenha" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -178,6 +185,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Mantive todas as suas funções originais de carregar atividades, enviar arquivo e trocar senha.
         function mostrarNotificacao(mensagem, sucesso = true) {
             const toastEl = document.getElementById('toastFeedback');
             const msgEl = document.getElementById('toastMensagem');
@@ -235,7 +243,6 @@
             }
         });
 
-        // 📊 CARREGAR E SEPARAR ATIVIDADES
         async function carregarMinhasAtividades() {
             try {
                 const r = await fetch('/aluno/minhas-atividades');
@@ -250,26 +257,23 @@
                     return;
                 }
 
-                // Filtragem
                 const pendentes = dados.filter(atv => !atv.corrigido);
                 const corrigidas = dados.filter(atv => atv.corrigido);
 
-                // Renderizar Pendentes
                 tbodyPendentes.innerHTML = pendentes.length ? pendentes.map(atv => `
                     <tr>
                         <td>
-                            <div class="fw-bold">${atv.nome_arquivo}</div>
+                            <div class="fw-bold text-dark">${atv.nome_arquivo}</div>
                             <div class="text-muted small">Enviado em: ${new Date(atv.data_envio).toLocaleDateString()}</div>
                         </td>
                         <td><span class="badge bg-warning-soft status-badge">⏳ Em Análise</span></td>
                     </tr>
                 `).join('') : '<tr><td colspan="2" class="text-center text-muted small py-3">Tudo corrigido! ✨</td></tr>';
 
-                // Renderizar Corrigidas
                 tbodyCorrigidas.innerHTML = corrigidas.length ? corrigidas.map(atv => `
                     <tr>
                         <td>
-                            <div class="fw-bold">${atv.nome_arquivo}</div>
+                            <div class="fw-bold text-dark">${atv.nome_arquivo}</div>
                             <a href="/uploads/${atv.caminho_arquivo}" download="${atv.nome_arquivo}" class="btn-download-aluno">📥 Baixar arquivo</a>
                         </td>
                         <td><span class="fs-5 fw-bold ${atv.nota >= 6 ? 'text-success' : 'text-danger'}">${atv.nota}</span></td>
