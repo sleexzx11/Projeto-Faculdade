@@ -197,7 +197,8 @@ app.post('/enviar-atividade', verificarLogin, upload.single('arquivo'), (req, re
 });
 
 app.get('/aluno/minhas-atividades', verificarLogin, (req, res) => {
-    db.query("SELECT * FROM atividades WHERE id_aluno = ? ORDER BY data_envio DESC", [req.session.userId], (err, results) => {
+    // INJETADO: Adicionado campo data_correcao no SELECT
+    db.query("SELECT *, data_correcao FROM atividades WHERE id_aluno = ? ORDER BY data_envio DESC", [req.session.userId], (err, results) => {
         if (err) return res.status(500).json([]);
         res.json(results);
     });
@@ -227,13 +228,15 @@ app.get('/atividades/lista', verificarLogin, verificarProfessor, (req, res) => {
 });
 
 app.post('/atividades/corrigir', verificarLogin, verificarProfessor, (req, res) => {
-    const { id, nota, feedback } = req.body;
+    // INJETADO: Recebe data_correcao do body
+    const { id, nota, feedback, data_correcao } = req.body;
     
     // Convertendo a nota para garantir que seja um número (caso venha string com vírgula)
     const notaFormatada = typeof nota === 'string' ? parseFloat(nota.replace(',', '.')) : nota;
 
-    const sql = "UPDATE atividades SET nota = ?, feedback = ?, corrigido = TRUE WHERE id = ?";
-    db.query(sql, [notaFormatada, feedback, id], (err) => {
+    // INJETADO: Agora o SQL atualiza a coluna data_correcao também
+    const sql = "UPDATE atividades SET nota = ?, feedback = ?, corrigido = TRUE, data_correcao = ? WHERE id = ?";
+    db.query(sql, [notaFormatada, feedback, data_correcao, id], (err) => {
         if (err) {
             console.error("Erro ao corrigir atividade:", err);
             return res.status(500).json({ sucesso: false, erro: "Erro ao atualizar no banco" });

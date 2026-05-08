@@ -28,14 +28,13 @@
         .dropdown-item:hover {
             background-color: #f0f7ff;
             color: #0d6efd;
-            transform: translateX(5px); /* Efeito de deslizar */
+            transform: translateX(5px);
         }
 
         .dropdown-item.text-danger:hover {
             background-color: #fff1f0;
             color: #dc3545 !important;
         }
-        /* --------------------------------------------------- */
 
         .user-info-header {
             padding: 15px; background-color: #f8f9fa;
@@ -69,6 +68,9 @@
         .section-divider::after {
             content: ""; flex: 1; height: 1px; background: #e2e8f0; margin-left: 15px;
         }
+
+        /* Estilo para a data de correção */
+        .date-badge { font-size: 0.65rem; color: #94a3b8; display: block; margin-top: 2px; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -185,7 +187,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Mantive todas as suas funções originais de carregar atividades, enviar arquivo e trocar senha.
         function mostrarNotificacao(mensagem, sucesso = true) {
             const toastEl = document.getElementById('toastFeedback');
             const msgEl = document.getElementById('toastMensagem');
@@ -276,7 +277,10 @@
                             <div class="fw-bold text-dark">${atv.nome_arquivo}</div>
                             <a href="/uploads/${atv.caminho_arquivo}" download="${atv.nome_arquivo}" class="btn-download-aluno">📥 Baixar arquivo</a>
                         </td>
-                        <td><span class="fs-5 fw-bold ${atv.nota >= 6 ? 'text-success' : 'text-danger'}">${atv.nota}</span></td>
+                        <td>
+                            <span class="fs-5 fw-bold ${atv.nota >= 6 ? 'text-success' : 'text-danger'}">${atv.nota}</span>
+                            <span class="date-badge">Corrigido em: ${atv.data_correcao ? new Date(atv.data_correcao).toLocaleDateString('pt-BR') : '---'}</span>
+                        </td>
                         <td><p class="mb-0 small text-secondary" style="max-width: 250px;">${atv.feedback || 'Sem observações'}</p></td>
                     </tr>
                 `).join('') : '<tr><td colspan="3" class="text-center text-muted small py-3">Aguardando correções iniciais.</td></tr>';
