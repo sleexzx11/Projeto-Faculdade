@@ -298,25 +298,47 @@
         }
 
         window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const erro = urlParams.get('erro');
+    const urlParams = new URLSearchParams(window.location.search);
+    const erro = urlParams.get('erro');
 
-            if (erro) {
-                if (erro === 'email_nao_autorizado' || erro === 'email_ja_cadastrado') {
-                    toggleAuth();
-                    if (erro === 'email_nao_autorizado') {
-                        document.querySelector('input[value="professor"]').checked = true;
-                        toggleCampos('professor');
-                        exibirAviso("Acesso Negado", "Este e-mail não consta na lista de professores autorizados pela instituição.", "🚫");
-                    } else if (erro === 'email_ja_cadastrado') {
-                        exibirAviso("E-mail em uso", "Este e-mail já possui um cadastro ativo no portal.", "📧");
-                    }
-                } else if (erro === 'interno') {
-                    exibirAviso("Erro Técnico", "Ocorreu uma falha no servidor. Tente novamente mais tarde.", "⚙️");
-                }
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        };
+    if (erro) {
+        // Se for erro de cadastro, alterna para a tela de registro automaticamente
+        if (['email_nao_autorizado', 'email_ja_cadastrado', 'ra_duplicado'].includes(erro)) {
+            toggleAuth();
+        }
+
+        switch (erro) {
+            case 'ra_duplicado':
+                exibirAviso("RA já cadastrado", "Este número de RA já pertence a outro aluno no sistema. Verifique os dados ou entre em contato com a secretaria.", "🆔");
+                break;
+                
+            case 'email_ja_cadastrado':
+                exibirAviso("E-mail em uso", "Este e-mail já possui um cadastro ativo no portal.", "📧");
+                break;
+
+            case 'email_nao_autorizado':
+                document.querySelector('input[value="professor"]').checked = true;
+                toggleCampos('professor');
+                exibirAviso("Acesso Negado", "Este e-mail não consta na lista de professores autorizados.", "🚫");
+                break;
+
+            case 'usuario_nao_encontrado':
+                exibirAviso("Login Inválido", "Usuário não encontrado. Verifique seu e-mail.", "🔍");
+                break;
+
+            case 'senha_incorreta':
+                exibirAviso("Erro de Senha", "A senha digitada está incorreta.", "🔑");
+                break;
+
+            case 'interno':
+                exibirAviso("Erro Técnico", "Ocorreu uma falha no servidor. Tente novamente mais tarde.", "⚙️");
+                break;
+        }
+
+        // Limpa a URL para o erro não reaparecer ao atualizar a página
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+};
     </script>
 </body>
 </html>

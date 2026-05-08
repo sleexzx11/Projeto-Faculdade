@@ -78,7 +78,7 @@
                         <div class="fw-bold text-dark text-truncate" id="menuNomeProf">Carregando...</div>
                         <div class="text-muted small">Professor(a)</div>
                     </div>
-                    <li class="mt-2"><label class="dropdown-item" style="cursor:pointer">📸 Mudar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
+                    <li class="mt-2"><label class="dropdown-item" style="cursor:pointer">📸 Mudar Foto <input type="file" name="foto" hidden onchange="changePhoto(this)"></label></li>
                     <li><a class="dropdown-item" href="#" onclick="abrirModalSenha()">🔑 Trocar Senha</a></li>
                     <li><hr class="dropdown-divider mx-2"></li>
                     <li class="mb-2"><a class="dropdown-item text-danger fw-bold" href="/auth/logout">🚪 Sair do Sistema</a></li>
@@ -183,7 +183,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Lógica de Autenticação Corrigida
         (async function verificarAcesso() {
             try {
                 const response = await fetch('/api/perfil');
@@ -191,22 +190,18 @@
                 
                 const dados = await response.json();
                 
-                // Verifica se é professor (aceita minúsculo ou maiúsculo por segurança)
                 if (dados.tipo.toLowerCase() !== 'professor') {
                     window.location.href = '/login.html'; 
                     return;
                 }
 
-                // Preenchimento seguro dos campos
-                const elMenu = document.getElementById('menuNomeProf');
-                const elWelcome = document.getElementById('welcomeProf');
+                if (document.getElementById('menuNomeProf')) document.getElementById('menuNomeProf').innerText = dados.nome;
+                if (document.getElementById('welcomeProf')) document.getElementById('welcomeProf').innerText = dados.nome;
                 
-                if (elMenu) elMenu.innerText = dados.nome;
-                if (elWelcome) elWelcome.innerText = dados.nome;
+                // ATUALIZAÇÃO: Carrega a foto salva ou o avatar padrão
+                const fotoUrl = dados.foto ? dados.foto : `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=0D6EFD&color=fff`;
+                document.getElementById('profPhoto').src = fotoUrl;
                 
-                document.getElementById('profPhoto').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=0D6EFD&color=fff`;
-                
-                // Só mostra o corpo da página após carregar os dados
                 document.body.style.display = 'block';
                 carregarAtividades();
             } catch (error) { 
@@ -275,8 +270,6 @@
             const feedback = prompt("Feedback para o aluno:");
             if (feedback === null) return;
 
-            const agora = new Date().toISOString();
-
             try {
                 const res = await fetch('/atividades/corrigir', {
                     method: 'POST',
@@ -285,7 +278,7 @@
                         id, 
                         nota: parseFloat(nota.replace(',', '.')), 
                         feedback,
-                        data_correcao: agora 
+                        data_correcao: new Date().toISOString()
                     })
                 });
                 if(res.ok) carregarAtividades();
@@ -293,7 +286,31 @@
             } catch (err) { alert("Erro de conexão."); }
         }
 
-        function changePhoto(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = (e) => document.getElementById('profPhoto').src = e.target.result; reader.readAsDataURL(input.files[0]); } }
+        // ATUALIZAÇÃO: Função changePhoto persistente para Professores
+        async function changePhoto(input) {
+            if (input.files && input.files[0]) {
+                const formData = new FormData();
+                formData.append('foto', input.files[0]);
+
+                try {
+                    const res = await fetch('/auth/atualizar-foto', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const resultado = await res.json();
+                    
+                    if (resultado.sucesso) {
+                        document.getElementById('profPhoto').src = resultado.url;
+                        alert("📸 Foto de perfil atualizada!");
+                    } else {
+                        alert("❌ Erro ao salvar foto.");
+                    }
+                } catch (err) {
+                    alert("❌ Erro de conexão ao enviar foto.");
+                }
+            }
+        }
+
         function abrirModalSenha() { new bootstrap.Modal(document.getElementById('modalSenha')).show(); }
         function validarSenhas() {
             const s1 = document.getElementById('novaSenha').value;

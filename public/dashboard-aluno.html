@@ -16,7 +16,6 @@
         }
         .profile-img:hover { transform: scale(1.1); border-color: #fff; }
 
-        /* --- ATUALIZAÇÃO: ESTADOS HOVER DO MENU DE PERFIL --- */
         .dropdown-item {
             transition: all 0.2s ease;
             border-radius: 6px;
@@ -42,7 +41,7 @@
         }
 
         .hero-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(136deg, #1e3a8a 0%, #3b82f6 100%);
             color: white; padding: 60px 0 90px 0; border-bottom-left-radius: 50px;
             border-bottom-right-radius: 50px; margin-bottom: -50px; position: relative;
         }
@@ -69,7 +68,6 @@
             content: ""; flex: 1; height: 1px; background: #e2e8f0; margin-left: 15px;
         }
 
-        /* Estilo para a data de correção */
         .date-badge { font-size: 0.65rem; color: #94a3b8; display: block; margin-top: 2px; font-weight: 500; }
     </style>
 </head>
@@ -95,7 +93,7 @@
                         <div class="fw-bold text-dark text-truncate" id="menuNome">Carregando...</div>
                         <div class="text-muted small" id="menuRA">RA: --</div>
                     </div>
-                    <li><label class="dropdown-item mt-2" style="cursor:pointer">📸 Alterar Foto <input type="file" hidden onchange="changePhoto(this)"></label></li>
+                    <li><label class="dropdown-item mt-2" style="cursor:pointer">📸 Alterar Foto <input type="file" name="foto" hidden onchange="changePhoto(this)"></label></li>
                     <li><a class="dropdown-item" href="#" onclick="abrirModalSenha()">🔑 Alterar Senha</a></li>
                     <li><hr class="dropdown-divider mx-2"></li>
                     <li><a class="dropdown-item text-danger fw-bold mb-2" href="/auth/logout">🚪 Deslogar</a></li>
@@ -209,7 +207,11 @@
                 document.getElementById('menuNome').innerText = dados.nome;
                 document.getElementById('welcomeNome').innerText = dados.nome;
                 document.getElementById('menuRA').innerText = "RA: " + (dados.ra || "N/A");
-                document.getElementById('userPhoto').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=random`;
+                
+                // INJETADO: Carrega a foto do banco se existir, senão usa avatar padrão
+                const fotoUrl = dados.foto ? dados.foto : `https://ui-avatars.com/api/?name=${encodeURIComponent(dados.nome)}&background=random`;
+                document.getElementById('userPhoto').src = fotoUrl;
+
                 carregarMinhasAtividades();
             } catch (error) { window.location.href = '/login.html'; }
         })();
@@ -288,11 +290,28 @@
             } catch (err) { console.error("Erro ao carregar atividades"); }
         }
 
-        function changePhoto(input) {
+        // INJETADO: Função changePhoto atualizada para salvar no servidor
+        async function changePhoto(input) {
             if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => document.getElementById('userPhoto').src = e.target.result;
-                reader.readAsDataURL(input.files[0]);
+                const formData = new FormData();
+                formData.append('foto', input.files[0]);
+
+                try {
+                    const res = await fetch('/auth/atualizar-foto', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const resultado = await res.json();
+                    
+                    if (resultado.sucesso) {
+                        document.getElementById('userPhoto').src = resultado.url;
+                        mostrarNotificacao("📸 Foto de perfil atualizada!");
+                    } else {
+                        mostrarNotificacao("❌ Erro ao salvar foto no servidor.", false);
+                    }
+                } catch (err) {
+                    mostrarNotificacao("❌ Erro de conexão ao atualizar foto.", false);
+                }
             }
         }
 
